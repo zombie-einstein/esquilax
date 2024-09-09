@@ -1,0 +1,65 @@
+name: pre-merge
+run-name: ${{ github.actor }} pre-merge checks
+on: [pull_request]
+jobs:
+  run-pre-commit:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
+          virtualenvs-create: false
+          installer-parallel: true
+      - run: poetry install
+      - run: pre-commit install
+      - run: task lint
+  run-tests:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
+          virtualenvs-create: false
+          installer-parallel: true
+      - run: poetry install
+      - run: pytest -vv
+  build-docs:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
+          virtualenvs-create: false
+          installer-parallel: true
+      - run: poetry install
+      - run: task docs
+  doc-tests:
+    runs-on: ubuntu-latest
+    needs: [build-docs]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
+          virtualenvs-create: false
+          installer-parallel: true
+      - run: poetry install
+      - run: doc-tests

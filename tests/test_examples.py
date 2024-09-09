@@ -1,0 +1,76 @@
+import examples
+from examples.boids.evolutionary import updates
+
+
+def test_opinion_dynamics_example():
+    n_steps = 100
+    n_agents = 50
+
+    results = examples.opinion_dynamics.opinion_dynamics(
+        n_agents, 250, n_steps, show_progress=False
+    )
+
+    assert results.shape == (n_steps, n_agents)
+
+
+def test_hard_coded_boids_example():
+    n_steps = 100
+    n_agents = 50
+
+    results = examples.boids.hard_coded.boids_sim(
+        n_agents, n_steps, show_progress=False
+    )
+
+    assert results.shape == (n_steps, n_agents, 2)
+
+
+def test_evo_boids_a():
+    pop_size = 2
+    n_agents = 10
+    n_generations = 3
+    n_samples = 2
+    n_steps = 8
+
+    f = examples.boids.evolutionary.env
+    params = updates.Params()
+    _, scores, (test_paths, test_headings), test_rewards = f.evo_boids(
+        params,
+        n_agents,
+        n_generations,
+        n_samples,
+        n_steps,
+        True,
+        show_progress=False,
+        layer_width=4,
+        pop_size=pop_size,
+    )
+
+    assert scores.shape == (n_generations, pop_size)
+    assert test_paths.shape == (pop_size, n_steps, n_agents, 2)
+    assert test_headings.shape == (pop_size, n_steps, n_agents)
+    assert test_rewards.shape == (pop_size, n_steps, n_agents)
+
+
+def test_evo_boids_b():
+    n_agents = 10
+    n_generations = 3
+    n_samples = 2
+    n_steps = 25
+
+    f = examples.boids.evolutionary.env
+    params = updates.Params()
+    _, scores, (test_paths, test_headings), test_rewards = f.evo_boids(
+        params,
+        n_agents,
+        n_generations,
+        n_samples,
+        n_steps,
+        False,
+        show_progress=False,
+        layer_width=4,
+    )
+
+    assert scores.shape == (n_generations, n_agents)
+    assert test_paths.shape == (n_steps, n_agents, 2)
+    assert test_headings.shape == (n_steps, n_agents)
+    assert test_rewards.shape == (n_steps, n_agents)

@@ -1,0 +1,54 @@
+[tool.poetry]
+name = "esquilax"
+version = "0.1.0"
+description = "JAX multi-agent simulation and ML toolset"
+authors = [
+    "Zombie-Einstein <zombie-einstein@proton.me>"
+]
+readme = "README.md"
+packages = [{include = "esquilax", from = "src"}]
+repository = "https://github.com/zombie-einstein/esquilax"
+license = "MIT"
+keywords = [
+  "agent-based modelling",
+  "simulation",
+  "reinforcement-learning",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Artificial Life",
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+jax = "^0.4.30"
+chex = "^0.1.86"
+jax-tqdm = "^0.2.1"
+evosax = "^0.1.6"
+flax = "^0.8.5"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.7.1"
+taskipy = "^1.13.0"
+pytest = "^8.2.2"
+sphinx = "^7.4.7"
+piccolo-theme = "^0.23.0"
+sphinx-autoapi = "^3.2.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.taskipy.tasks]
+test = { cmd = "pytest tests", help="Run tests"}
+lint = { cmd = "pre-commit run --all-files", help="Code format checks"}
+docs = { cmd = "sphinx-build -W -b html docs/source docs/build", help="Build docs"}
+doc-tests = { cmd = "sphinx-build -W -b doctest docs/source docs/build", help="Run sphinx doc-tests"}
