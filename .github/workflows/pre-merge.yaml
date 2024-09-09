@@ -62,4 +62,4 @@ jobs:
           virtualenvs-create: false
           installer-parallel: true
       - run: poetry install
-      - run: doc-tests
+      - run: task doc-tests
