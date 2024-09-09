@@ -21,6 +21,11 @@ def edge_map(f: Callable) -> Callable:
     Maps a function over a set of edges (with data) and
     data corresponding to the edge start and end nodes,
 
+    .. warning::
+
+       Edge indices and any associated data should be
+       sorted using :py:meth:`esquilax.utils.sort_edges`
+
     Examples
     --------
 
@@ -138,6 +143,10 @@ def graph_reduce(
     of the edge-set. Edges are treated as directional, with the
     first node observing the state of the second.
 
+    .. warning::
+
+       Edge indices and any associated data should be
+       sorted using :py:meth:`esquilax.utils.sort_edges`
 
     Examples
     --------
@@ -270,6 +279,11 @@ def random_neighbour(default: Any, n: int = -1) -> Callable:
     the graph (i.e. a random edge starting at that node)
     and apply the update function. Returns a
     default value if the node has no outgoing edges.
+
+    .. warning::
+
+       Edge indices and any associated data should be
+       sorted using :py:meth:`esquilax.utils.sort_edges`
 
     Examples
     --------
