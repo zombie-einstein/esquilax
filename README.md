@@ -15,6 +15,9 @@ agents, and to work alongside other JAX packages
 like [Flax](https://github.com/google/flax) and
 [Evosax](https://github.com/RobertTLange/evosax).
 
+Full documentation can be found
+[here](https://zombie-einstein.github.io/esquilax/)
+
 ## Features
 
 - ***Built on top of JAX***
