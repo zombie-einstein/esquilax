@@ -25,6 +25,9 @@ autoapi_options = [
 autoapi_member_order = "alphabetical"
 autoapi_own_page_level = "function"
 autoapi_python_class_content = "both"
+autoapi_template_dir = "_autoapi_templates"
+
+exclude_patterns = ["_autoapi_templates/*.rst"]
 
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
@@ -39,8 +42,6 @@ napoleon_use_ivar = True
 napoleon_use_rtype = False
 napoleon_preprocess_types = True
 napoleon_attr_annotations = True
-
-exclude_patterns = []
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
