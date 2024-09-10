@@ -8,28 +8,39 @@ import chex
 import jax
 
 
-@partial(jax.jit, static_argnames=("f",))
-def broadcast_params(
-    f: Callable, params: chex.ArrayTree, obs: chex.ArrayTree
+@partial(jax.jit, static_argnames=("f", "broadcast"))
+def get_actions(
+    f: Callable, broadcast: bool, params: chex.ArrayTree, observations: chex.ArrayTree
 ) -> chex.ArrayTree:
     """
-    Broadcast function parameters over observations
+    Apply a function and parameters to observations
 
-    Applies parameters where agents all share
-    the same parameters, across their individual
-    observations, returning an output for
-    each agent.
+    Generate actions from a function and corresponding
+    parameters applied to observation. Typically, this
+    may be a neural-network forward pass, with network
+    parameters, applied to observation of some
+    simulation state.
+
+    This is intended to sample actions across multiple
+    agents, with either shared parameters, or parameters
+    per agent (each with corresponding individual
+    observations),
 
     Parameters
     ----------
     f: Callable
         Function parameterised by ``params`` (e.g.
-        a neural-network apply function).
+        a neural-network apply function). Should
+        have a signature :code:`(params, observation) -> x`.
+    broadcast: bool
+        If ``True`` the parameters will be shared across
+        all the observations (i.e. a shared policy),
+        otherwise they will be mapped over.
     params: chex.ArrayTree
         Function parameters. Since shared
         by agents these should be a single sample
         of parameters.
-    obs: chex.ArrayTree
+    observations: chex.ArrayTree
         Array/tree of individual observation for agents
         to be mapped over.
 
@@ -38,34 +49,51 @@ def broadcast_params(
     chex.ArrayTree
         Output of ``f`` for each agent
     """
-    return jax.vmap(f, in_axes=(None, 0))(params, obs)
+    in_axes = (None, 0) if broadcast else (0, 0)
+    return jax.vmap(f, in_axes=in_axes)(params, observations)
 
 
-@partial(jax.jit, static_argnames=("f",))
-def map_params(
-    f: Callable, params: chex.ArrayTree, obs: chex.ArrayTree
+@partial(jax.jit, static_argnames=("f", "broadcast"))
+def sample_actions(
+    f: Callable,
+    broadcast: bool,
+    k: chex.PRNGKey,
+    params: chex.ArrayTree,
+    observations: chex.ArrayTree,
 ) -> chex.ArrayTree:
     """
-    Map a sample of parameters over observations
+    Apply a function and parameters to observations with a random key
 
-    Applies a sample of parameters across agents
-    individual observations, returning an output for
-    each agent.
+    Generate actions from a function and corresponding
+    parameters applied to observation. Also passes
+    a random key for use when some randomness is
+    required, e.g. for policy exploration during RL training.
 
     Parameters
     ----------
     f: Callable
         Function parameterised by ``params`` (e.g.
-        a neural-network apply function).
+        a neural-network apply function). Should
+        have a signature :code:`(key, params, observation) -> x`.
+    broadcast: bool
+        If ``True`` the parameters will be shared across
+        all the observations (i.e. a shared policy),
+        otherwise they will be mapped over.
+    k: jax.random.PRNGKey
+        JAX random key.
     params: chex.ArrayTree
-        Population of Evosax function parameters.
-    obs: chex.ArrayTree
+        Function parameters. Since shared
+        by agents these should be a single sample
+        of parameters.
+    observations: chex.ArrayTree
         Array/tree of individual observation for agents
         to be mapped over.
 
     Returns
     -------
     chex.ArrayTree
-        Output of ``f`` for each agent
+        Output of ``f`` for each agent.
     """
-    return jax.vmap(f, in_axes=(0, 0))(params, obs)
+    in_axes = (0, None, 0) if broadcast else (0, 0, 0)
+    keys = jax.random.split(k, observations.shape[0])
+    return jax.vmap(f, in_axes=in_axes)(keys, params, observations)

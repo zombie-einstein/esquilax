@@ -1,2 +1,5 @@
+"""
+RL and Neuro-evolution functionality and utilities
+"""
 from . import evo
-from .updates import broadcast_params, map_params
+from .updates import get_actions, sample_actions

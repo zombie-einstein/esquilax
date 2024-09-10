@@ -133,14 +133,9 @@ it returns a default value. The result is a size 4 observation vector
 for each agent.
 
 The observation can be fed to the network using the built in
-:py:meth:`esquilax.ml.evo.map_params` function that maps the observations
+:py:meth:`esquilax.ml.get_actions` function that maps the observations
 across population parameter samples. The output of this function is
 the steering updates for each agent.
-
-.. note::
-
-   We could also use :py:meth:`esquilax.ml.evo.broadcast_params` to provide
-   the same parameters to each agent.
 
 The outputs of the network are then converted to updated agent headings
 and speeds
@@ -254,8 +249,8 @@ initialisation and model update in a :py:class:`esquilax.SimEnv` class:
            obs = flatten_observations(
                k, params, (boids, n_nb, x_nb, s_nb, h_nb)
            )
-           actions = esquilax.ml.map_params(
-               self.apply_fun, population, obs
+           actions = esquilax.ml.get_actions(
+               self.apply_fun, False, population, obs
            )
            headings, speeds = update_velocity(
                k, params, (actions, boids)

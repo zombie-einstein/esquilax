@@ -56,12 +56,9 @@ class BoidEnv(esquilax.Sim[updates.Params, updates.Boid]):
         net_params, params = params
         n_nb, x_nb, s_nb, h_nb = updates.observe(k, params, boids, boids, pos=boids.pos)
         obs = updates.flatten_observations(k, params, (boids, n_nb, x_nb, s_nb, h_nb))
-
-        if self.shared_policy:
-            actions = esquilax.ml.broadcast_params(self.apply_fun, net_params, obs)
-        else:
-            actions = esquilax.ml.map_params(self.apply_fun, net_params, obs)
-
+        actions = esquilax.ml.get_actions(
+            self.apply_fun, self.shared_policy, net_params, obs
+        )
         headings, speeds = updates.update_velocity(k, params, (actions, boids))
         pos = updates.move(k, params, (boids.pos, headings, speeds))
         rewards = updates.rewards(k, params, pos, pos, pos=pos)
