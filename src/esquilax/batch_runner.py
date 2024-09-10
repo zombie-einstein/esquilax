@@ -23,7 +23,9 @@ def batch_sim_runner(
     Batch Monte-Carlo and parameter sweep simulation execution
 
     Run simulations across multiple random keys and optionally
-    across a sample of simulation parameters.
+    across a sample of simulation parameters. If run across
+    parameters, then in will run ``n_samples`` per parameter
+    sample.
 
     Parameters
     ----------
@@ -63,10 +65,8 @@ def batch_sim_runner(
         params = sim.default_params()
 
     def inner(k, _params):
-        k1, k2 = jax.random.split(k)
-        _initial_state = sim.initial_state(k1)
-        _, records, _ = sim.run(
-            n_steps, k2, _params, _initial_state, show_progress=show_progress
+        _, records = sim.init_and_run(
+            n_steps, k, show_progress=show_progress, params=_params
         )
         return records
 
