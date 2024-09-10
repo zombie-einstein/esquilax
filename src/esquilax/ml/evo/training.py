@@ -108,7 +108,7 @@ def train(
 
     Parameters
     ----------
-    strategy: esquilax.evo.Strategy
+    strategy: esquilax.ml.evo.Strategy
         Evosax evolutionary strategy
     env: esquilax.env.SimEnv
         Esquilax simulation training environment

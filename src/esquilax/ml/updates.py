@@ -1,5 +1,5 @@
 """
-Evosax simulation update utilities
+Simulation update utilities for RL and neuro-evolution
 """
 from functools import partial
 from typing import Callable
@@ -13,7 +13,7 @@ def broadcast_params(
     f: Callable, params: chex.ArrayTree, obs: chex.ArrayTree
 ) -> chex.ArrayTree:
     """
-    Broadcast evosax parameters over observations
+    Broadcast function parameters over observations
 
     Applies parameters where agents all share
     the same parameters, across their individual
@@ -26,9 +26,9 @@ def broadcast_params(
         Function parameterised by ``params`` (e.g.
         a neural-network apply function).
     params: chex.ArrayTree
-        Evosax function parameters. Since shared
+        Function parameters. Since shared
         by agents these should be a single sample
-        of parameters from a larger population.
+        of parameters.
     obs: chex.ArrayTree
         Array/tree of individual observation for agents
         to be mapped over.
@@ -46,9 +46,9 @@ def map_params(
     f: Callable, params: chex.ArrayTree, obs: chex.ArrayTree
 ) -> chex.ArrayTree:
     """
-    Map an evosax population of parameters over observations
+    Map a sample of parameters over observations
 
-    Applies a population of parameters across agents
+    Applies a sample of parameters across agents
     individual observations, returning an output for
     each agent.
 

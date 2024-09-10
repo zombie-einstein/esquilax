@@ -58,16 +58,16 @@ class BoidEnv(esquilax.Sim[updates.Params, updates.Boid]):
         obs = updates.flatten_observations(k, params, (boids, n_nb, x_nb, s_nb, h_nb))
 
         if self.shared_policy:
-            actions = esquilax.evo.broadcast_params(self.apply_fun, net_params, obs)
+            actions = esquilax.ml.broadcast_params(self.apply_fun, net_params, obs)
         else:
-            actions = esquilax.evo.map_params(self.apply_fun, net_params, obs)
+            actions = esquilax.ml.map_params(self.apply_fun, net_params, obs)
 
         headings, speeds = updates.update_velocity(k, params, (actions, boids))
         pos = updates.move(k, params, (boids.pos, headings, speeds))
         rewards = updates.rewards(k, params, pos, pos, pos=pos)
         boids = updates.Boid(pos=pos, heading=headings, speed=speeds)
 
-        return boids, esquilax.evo.TrainingData(
+        return boids, esquilax.ml.evo.TrainingData(
             rewards=rewards, records=(pos, headings)
         )
 
@@ -94,7 +94,7 @@ def evo_boids(
     else:
         pop_size = n_agents
 
-    strategy = esquilax.evo.BasicStrategy(net_params, strategy, pop_size)
+    strategy = esquilax.ml.evo.BasicStrategy(net_params, strategy, pop_size)
     evo_params = strategy.default_params()
     evo_state = strategy.initialize(k, evo_params)
 
@@ -106,7 +106,7 @@ def evo_boids(
         env_params.max_speed,
     )
 
-    evo_state, agent_rewards = esquilax.evo.train(
+    evo_state, agent_rewards = esquilax.ml.evo.train(
         strategy,
         env,
         n_generations,
@@ -123,7 +123,7 @@ def evo_boids(
     params, evo_state = strategy.ask(k, evo_state, evo_params)
     params_shaped = strategy.reshape_params(params)
 
-    test_data = esquilax.evo.test(
+    test_data = esquilax.ml.evo.test(
         params_shaped, env, n_steps, shared_policy, k, env_params=env_params
     )
 

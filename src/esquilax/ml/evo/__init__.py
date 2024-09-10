@@ -9,4 +9,3 @@ policies (via `Evosax`_) using esquilax as a multi-agent
 """
 from .strategy import BasicStrategy, Strategy
 from .training import TrainingData, test, train
-from .updates import broadcast_params, map_params

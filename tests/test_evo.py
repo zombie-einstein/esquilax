@@ -3,7 +3,7 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-from esquilax import evo
+from esquilax import ml
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def test_evo_broadcast(apply_fun):
     pop, pop_state = strategy.ask_strategy(k, pop_state, es_params)
     obs = jnp.ones((10, 5))
 
-    action = evo.broadcast_params(apply_fun, pop[0], obs)
+    action = ml.broadcast_params(apply_fun, pop[0], obs)
 
     assert action.shape == (10,)
 
@@ -37,6 +37,6 @@ def test_evo_map(apply_fun):
     pop, pop_state = strategy.ask_strategy(k, pop_state, es_params)
     obs = jnp.ones((10, 5))
 
-    action = evo.map_params(apply_fun, pop, obs)
+    action = ml.map_params(apply_fun, pop, obs)
 
     assert action.shape == (10,)
