@@ -27,7 +27,7 @@ autoapi_own_page_level = "function"
 autoapi_python_class_content = "both"
 autoapi_template_dir = "_autoapi_templates"
 
-exclude_patterns = ["_autoapi_templates/*.rst"]
+exclude_patterns = ["_autoapi_templates/**"]
 
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
