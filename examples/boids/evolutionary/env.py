@@ -16,19 +16,15 @@ class BoidEnv(esquilax.Sim[updates.Params, updates.Boid]):
         apply_fun: Callable,
         n_agents: int,
         shared_policy: bool,
-        min_speed: float,
-        max_speed: float,
     ):
         self.apply_fun = apply_fun
         self.n_agents = n_agents
         self.shared_policy = shared_policy
-        self.min_speed = min_speed
-        self.max_speed = max_speed
 
     def default_params(self) -> updates.Params:
         return updates.Params()
 
-    def initial_state(self, k: chex.PRNGKey) -> updates.Boid:
+    def initial_state(self, k: chex.PRNGKey, params: updates.Params) -> updates.Boid:
         k1, k2, k3 = jax.random.split(k, 3)
 
         boids = updates.Boid(
@@ -36,8 +32,8 @@ class BoidEnv(esquilax.Sim[updates.Params, updates.Boid]):
             speed=jax.random.uniform(
                 k2,
                 (self.n_agents,),
-                minval=self.min_speed,
-                maxval=self.max_speed,
+                minval=params.min_speed,
+                maxval=params.max_speed,
             ),
             heading=jax.random.uniform(
                 k3, (self.n_agents,), minval=0.0, maxval=2.0 * jnp.pi
@@ -52,12 +48,13 @@ class BoidEnv(esquilax.Sim[updates.Params, updates.Boid]):
         k: chex.PRNGKey,
         params: updates.Params,
         boids: updates.Boid,
+        *,
+        agent_params,
     ):
-        net_params, params = params
         n_nb, x_nb, s_nb, h_nb = updates.observe(k, params, boids, boids, pos=boids.pos)
         obs = updates.flatten_observations(k, params, (boids, n_nb, x_nb, s_nb, h_nb))
         actions = esquilax.ml.get_actions(
-            self.apply_fun, self.shared_policy, net_params, obs
+            self.apply_fun, self.shared_policy, agent_params, obs
         )
         headings, speeds = updates.update_velocity(k, params, (actions, boids))
         pos = updates.move(k, params, (boids.pos, headings, speeds))
@@ -99,8 +96,6 @@ def evo_boids(
         network.apply,
         n_agents,
         shared_policy,
-        env_params.min_speed,
-        env_params.max_speed,
     )
 
     evo_state, agent_rewards = esquilax.ml.evo.train(

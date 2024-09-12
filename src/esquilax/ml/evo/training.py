@@ -117,15 +117,12 @@ def train(
 
            The step function of the environment should
            include the population/parameters as
-           a member of the parameters argument, and
+           a keyword argument `agent_params`, and
            return a `TrainingData` class, for example:
 
            .. code-block:: python
 
-              def step(self, i, k, params, state):
-                  # params is a tuple containing the population
-                  # as the first member
-                  population, sim_params = params
+              def step(self, i, k, params, state, *, agent_params):
                   ...
                   # Rewards are returned as part of the TrainingData
                   return (
@@ -181,9 +178,14 @@ def train(
         _population_shaped = strategy.reshape_params(_population)
 
         def inner(_pop) -> TrainingData:
-            _params = (_pop, env_params)
             return batch_sim_runner(
-                env, n_samples, n_steps, k2, show_progress=False, params=_params
+                env,
+                n_samples,
+                n_steps,
+                k2,
+                show_progress=False,
+                params=env_params,
+                agent_params=_pop,
             )
 
         if map_population:
@@ -271,10 +273,14 @@ def test(
     env_params = env.default_params() if env_params is None else env_params
 
     def inner(_pop):
-        _initial_state = env.initial_state(k1)
-        _params = (_pop, env_params)
+        _initial_state = env.initial_state(k1, env_params)
         _, _testing_data, _ = env.run(
-            n_steps, k2, _params, _initial_state, show_progress=show_progress
+            n_steps,
+            k2,
+            env_params,
+            _initial_state,
+            show_progress=show_progress,
+            agent_params=_pop,
         )
         return _testing_data
 

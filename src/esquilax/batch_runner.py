@@ -18,6 +18,7 @@ def batch_sim_runner(
     show_progress: bool = True,
     params: Optional[TSimParams] = None,
     param_samples: Optional[TSimParams] = None,
+    **step_kwargs,
 ) -> chex.ArrayTree:
     """
     Batch Monte-Carlo and parameter sweep simulation execution
@@ -47,6 +48,10 @@ def batch_sim_runner(
         Optional simulation parameter samples to generate
         data across. Should have the same tree structure as individual
         simulation parameters.
+    **step_kwargs
+        Any additional keyword arguments passed to the
+        step function. Arguments are static over the
+        course of the simulation.
 
     Returns
     -------
@@ -66,7 +71,7 @@ def batch_sim_runner(
 
     def inner(k, _params):
         _, records = sim.init_and_run(
-            n_steps, k, show_progress=show_progress, params=_params
+            n_steps, k, show_progress=show_progress, params=_params, **step_kwargs
         )
         return records
 

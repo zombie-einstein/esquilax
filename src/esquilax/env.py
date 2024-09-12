@@ -2,7 +2,7 @@
 Abstract class wrapping common simulation functionality
 """
 from functools import partial
-from typing import Generic, Optional, Tuple, TypeVar
+from typing import Any, Generic, Optional, Tuple, TypeVar
 
 import chex
 import jax
@@ -40,7 +40,7 @@ class Sim(Generic[TSimParams, TSimState]):
         raise NotImplementedError
 
     @partial(jax.jit, static_argnums=(0,))
-    def initial_state(self, k: chex.PRNGKey) -> TSimState:
+    def initial_state(self, k: chex.PRNGKey, params: TSimParams) -> TSimState:
         """
         Initialise the initial state of the simulation
 
@@ -48,6 +48,8 @@ class Sim(Generic[TSimParams, TSimState]):
         ----------
         k: jax.random.PRNGKey
             JAX random key.
+        params: TSimParams
+            Simulation parameters
 
         Returns
         -------
@@ -63,6 +65,7 @@ class Sim(Generic[TSimParams, TSimState]):
         k: chex.PRNGKey,
         params: TSimParams,
         state: TSimState,
+        **kwargs: Any
     ) -> Tuple[TSimState, chex.ArrayTree]:
         """
         A single step/update of the environment
@@ -92,6 +95,8 @@ class Sim(Generic[TSimParams, TSimState]):
             Simulation time-independent parameters
         state: TSimState
             Simulation state
+        **kwargs
+            Any additional keyword arguments.
 
         Returns
         -------
@@ -109,6 +114,7 @@ class Sim(Generic[TSimParams, TSimState]):
         params: TSimParams,
         initial_state: TSimState,
         show_progress: bool = True,
+        **step_kwargs: Any
     ) -> Tuple[TSimState, chex.ArrayTree, chex.PRNGKey]:
         """
         Convenience function to run the simulation for a fixed number of steps
@@ -126,6 +132,10 @@ class Sim(Generic[TSimParams, TSimState]):
         show_progress: bool, optional
             If ``True`` a progress bar will be displayed.
             Default ``True``
+        **step_kwargs
+            Any additional keyword arguments passed to the
+            step function. Arguments are static over the
+            course of the simulation.
 
         Returns
         -------
@@ -137,7 +147,12 @@ class Sim(Generic[TSimParams, TSimState]):
             - Updated JAX random key
         """
         final_state, records, k = sim_runner(
-            self.step, params, initial_state, n_steps, k, show_progress=show_progress
+            partial(self.step, **step_kwargs),
+            params,
+            initial_state,
+            n_steps,
+            k,
+            show_progress=show_progress,
         )
 
         return final_state, records, k
@@ -149,6 +164,7 @@ class Sim(Generic[TSimParams, TSimState]):
         k: chex,
         show_progress: bool = True,
         params: Optional[TSimParams] = None,
+        **step_kwargs
     ) -> Tuple[TSimState, chex.ArrayTree]:
         """
         Convenience function to initialise and run the simulation
@@ -165,6 +181,10 @@ class Sim(Generic[TSimParams, TSimState]):
         params: TSimParams, optional
             Optional simulation parameters, if not provided
             default sim parameters will be used.
+        **step_kwargs
+            Any additional keyword arguments passed to the
+            step function. Arguments are static over the
+            course of the simulation.
 
         Returns
         -------
@@ -178,9 +198,14 @@ class Sim(Generic[TSimParams, TSimState]):
         k1, k2 = jax.random.split(k, 2)
 
         params = self.default_params() if params is None else params
-        initial_state = self.initial_state(k1)
-        final_state, records, k = sim_runner(
-            self.step, params, initial_state, n_steps, k2, show_progress=show_progress
+        initial_state = self.initial_state(k1, params)
+        final_state, records, _ = self.run(
+            n_steps,
+            k,
+            params,
+            initial_state,
+            show_progress=show_progress,
+            **step_kwargs
         )
 
         return final_state, records

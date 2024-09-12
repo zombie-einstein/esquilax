@@ -1,1 +1,3 @@
-from .utils import Agents
+from gymnax.environments.environment import Environment
+
+from .agents import Agents

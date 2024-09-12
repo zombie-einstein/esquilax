@@ -216,7 +216,9 @@ initialisation and model update in a :py:class:`esquilax.SimEnv` class:
        def default_params(self) -> Params:
            return Params()
 
-       def initial_state(self, k: chex.PRNGKey) -> Boid:
+       def initial_state(
+           self, k: chex.PRNGKey, params: Params
+       ) -> Boid:
            k1, k2, k3 = jax.random.split(k, 3)
 
            return Boid(
@@ -241,8 +243,10 @@ initialisation and model update in a :py:class:`esquilax.SimEnv` class:
            k: chex.PRNGKey,
            params: Params,
            boids: Boid,
+           *,
+           agent_params,
        ) -> Tuple[Boid, evo.TrainingData]:
-           population, params = params
+
            n_nb, x_nb, s_nb, h_nb = observe(
                k, params, boids, boids, pos=boids.pos
            )
@@ -250,7 +254,7 @@ initialisation and model update in a :py:class:`esquilax.SimEnv` class:
                k, params, (boids, n_nb, x_nb, s_nb, h_nb)
            )
            actions = esquilax.ml.get_actions(
-               self.apply_fun, False, population, obs
+               self.apply_fun, False, agent_params, obs
            )
            headings, speeds = update_velocity(
                k, params, (actions, boids)
@@ -268,9 +272,10 @@ initialisation and model update in a :py:class:`esquilax.SimEnv` class:
 - The initialisation method initialises random initial positions and
   velocities of the boids.
 - The step method combines the simulation updates. The current population
-  or parameter sample is provided as part of the simulation parameters.
+  or parameter sample is provided as a keyword argument ``agent_params``.
   The step function should also return a :py:class:`esquilax.ml.evo.TrainingData`
-  class containing generated rewards and any state data to be recorded.
+  class (containing generated rewards and any state data to be recorded) as
+  data to be recorded.
 
 Training
 --------
