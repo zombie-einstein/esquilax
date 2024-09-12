@@ -34,6 +34,7 @@ chex = "^0.1.86"
 jax-tqdm = "^0.2.1"
 evosax = "^0.1.6"
 flax = "^0.8.5"
+gymnax = "^0.0.8"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.7.1"
@@ -52,3 +53,4 @@ test = { cmd = "pytest tests", help="Run tests"}
 lint = { cmd = "pre-commit run --all-files", help="Code format checks"}
 docs = { cmd = "sphinx-build -W -b html docs/source docs/build", help="Build docs"}
 doc-tests = { cmd = "sphinx-build -W -b doctest docs/source docs/build", help="Run sphinx doc-tests"}
+pre-commit = "task test && task lint && task docs && task doc-tests"
