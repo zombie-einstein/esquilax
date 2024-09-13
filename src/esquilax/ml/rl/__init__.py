@@ -1,3 +1,2 @@
-from gymnax.environments.environment import Environment
-
-from .agents import Agents
+from .agents import Agent, BatchPolicyAgent, SharedPolicyAgent
+from .training import train
