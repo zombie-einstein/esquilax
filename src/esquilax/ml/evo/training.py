@@ -4,7 +4,7 @@
 .. _Evosax: https://github.com/RobertTLange/evosax?tab=readme-ov-file
 """
 from functools import partial
-from typing import Optional, Tuple
+from typing import Collection, Optional, Tuple
 
 import chex
 import evosax
@@ -52,10 +52,60 @@ class TrainingData:
     records: chex.ArrayTree
 
 
+def tree_ask(
+    key: chex.PRNGKey,
+    strategies: Collection[Strategy],
+    evo_states: Collection[evosax.EvoState],
+    evo_params: Collection[evosax.EvoParams],
+):
+    treedef = jax.tree.structure(strategies, is_leaf=lambda x: isinstance(x, Strategy))
+    keys = jax.random.split(key, treedef.num_leaves)
+    keys = jax.tree.unflatten(treedef, keys)
+
+    def inner(strat, k, state, params):
+        pop, state = strat.ask(k, state, params)
+        pop_shaped = strat.reshape_params(pop)
+        return state, pop, pop_shaped
+
+    evo_states, population, population_shaped = jax.tree.map(
+        inner,
+        strategies,
+        keys,
+        evo_states,
+        evo_params,
+        is_leaf=lambda x: isinstance(x, Strategy),
+    )
+    return evo_states, population, population_shaped
+
+
+def tree_tell(
+    strategies: Collection[Strategy],
+    populations: chex.ArrayTree,
+    rewards: chex.ArrayTree,
+    evo_states: Collection[evosax.EvoState],
+    evo_params: Collection[evosax.EvoParams],
+):
+    def inner(strat, pop, rew, state, params):
+        f = strat.shape_rewards(pop, rew)
+        state = strat.tell(pop, f, state, params)
+        return f, state
+
+    fitness, evo_states = jax.tree.map(
+        inner,
+        strategies,
+        populations,
+        rewards,
+        evo_states,
+        evo_params,
+        is_leaf=lambda x: isinstance(x, Strategy),
+    )
+    return fitness, evo_states
+
+
 @partial(
     jax.jit,
     static_argnames=(
-        "strategy",
+        "strategies",
         "env",
         "n_generations",
         "n_samples",
@@ -65,18 +115,18 @@ class TrainingData:
     ),
 )
 def train(
-    strategy: Strategy,
+    strategies: Collection[Strategy],
     env: Sim,
     n_generations: int,
     n_samples: int,
     n_steps: int,
     map_population: bool,
     k: chex.PRNGKey,
-    evo_params: evosax.EvoParams,
-    evo_state: evosax.EvoState,
+    evo_params: Collection[evosax.EvoParams],
+    evo_states: Collection[evosax.EvoState],
     show_progress: bool = True,
     env_params: Optional[TSimParams] = None,
-) -> Tuple[evosax.EvoState, chex.ArrayTree]:
+) -> Tuple[Collection[evosax.EvoState], chex.ArrayTree]:
     """
     Train a policy/policies using neuro-evolution
 
@@ -108,8 +158,8 @@ def train(
 
     Parameters
     ----------
-    strategy: esquilax.ml.evo.Strategy
-        Evosax evolutionary strategy
+    strategies: esquilax.ml.evo.Strategy
+        PyTree of Strategy classes
     env: esquilax.env.SimEnv
         Esquilax simulation training environment
 
@@ -151,7 +201,7 @@ def train(
         JAX random key
     evo_params: evosax.EvoParams
         Evosax strategy parameters
-    evo_state: evosax.EvoState
+    evo_states: evosax.EvoState
         Evosax strategy state
     show_progress: bool, optional
         If ``True`` a progress bar will be displayed
@@ -170,12 +220,13 @@ def train(
     env_params = env.default_params() if env_params is None else env_params
 
     def generation(carry, _):
-        _k, _evo_state = carry
+        _k, _evo_states = carry
 
         _k, k1, k2 = jax.random.split(_k, 3)
 
-        _population, _evo_state = strategy.ask(k1, _evo_state, evo_params)
-        _population_shaped = strategy.reshape_params(_population)
+        _evo_states, _population, _population_shaped = tree_ask(
+            k1, strategies, _evo_states, evo_params
+        )
 
         def inner(_pop) -> TrainingData:
             return batch_sim_runner(
@@ -190,26 +241,31 @@ def train(
 
         if map_population:
             _training_data = jax.vmap(inner)(_population_shaped)
-            _total_rewards = jnp.sum(_training_data.rewards, axis=(0, 2, 3))
+            _total_rewards = jax.tree.map(
+                lambda r: jnp.sum(r, axis=(0, 2, 3)), _training_data.rewards
+            )
         else:
             _training_data = inner(_population_shaped)
-            _total_rewards = jnp.sum(_training_data.rewards, axis=(0, 1))
+            _total_rewards = jax.tree.map(
+                lambda r: jnp.sum(r, axis=(0, 1)), _training_data.rewards
+            )
 
-        _fitness = strategy.shape_rewards(_population, _total_rewards)
-        _evo_state = strategy.tell(_population, _fitness, _evo_state, evo_params)
+        _fitness, _evo_states = tree_tell(
+            strategies, _population, _total_rewards, _evo_states, evo_params
+        )
 
-        return (_k, _evo_state), _total_rewards
+        return (_k, _evo_states), _total_rewards
 
     if show_progress:
         generation = jax_tqdm.scan_tqdm(n_generations, desc="Generation")(generation)
 
-    (k, evo_state), rewards = jax.lax.scan(
+    (k, evo_states), rewards = jax.lax.scan(
         generation,
-        (k, evo_state),
+        (k, evo_states),
         jnp.arange(n_generations),
     )
 
-    return evo_state, rewards
+    return evo_states, rewards
 
 
 @partial(
