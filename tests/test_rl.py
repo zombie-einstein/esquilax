@@ -66,7 +66,7 @@ def test_training():
             return self.apply_fn(self.params, observations), None
 
         def update(self, _k, trajectories):
-            return self
+            return self, (10, 10)
 
     agent = TestAgent.init(k, Model(), optax.adam(1e-4), observation_shape)
 
@@ -92,7 +92,7 @@ def test_training():
     n_env = 2
     n_env_steps = 5
 
-    updated_agent, rewards = rl.train(
+    updated_agent, rewards, train_data = rl.train(
         k,
         agent,
         env,
@@ -105,3 +105,6 @@ def test_training():
 
     assert isinstance(updated_agent, TestAgent)
     assert rewards.shape == (n_epochs, n_env, n_env_steps)
+    assert isinstance(train_data, tuple)
+    assert train_data[0].shape == (n_epochs,)
+    assert train_data[1].shape == (n_epochs,)
