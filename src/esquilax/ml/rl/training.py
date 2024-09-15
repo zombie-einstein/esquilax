@@ -144,6 +144,11 @@ def test(
     show_progress: bool = True,
 ):
     """
+    Test agent(s) performance
+
+    Test agents against a test environment,
+    returning trajectory data gathered
+    over training.
 
     Parameters
     ----------
