@@ -10,7 +10,7 @@ def sim():
         def default_params(self):
             return 10
 
-        def initial_state(self, k):
+        def initial_state(self, k, params):
             return 10, 20
 
         def step(self, i, k, params, state):

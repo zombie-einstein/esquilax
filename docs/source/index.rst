@@ -26,6 +26,10 @@ used alongside other JAX libraries like
   neuro-evolution libraries. Also works alongside
   the broader Python scientific/numerical ecosystem.
 
+- Built-in multi-agent RL and neuro-evolution functionality.
+  Use Esquilax simulations as multi-agent training
+  environments.
+
 - Functional paradigm allows models to be easily
   combined and re-used.
 

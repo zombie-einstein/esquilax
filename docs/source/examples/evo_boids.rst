@@ -48,6 +48,7 @@ First we import JAX, Chex, Flax, and Esquilax
    import jax.numpy as jnp
 
    import esquilax
+   from esquilax.ml import evo
 
 In this case the state of the agents will be stored as
 their positions and velocity in polar co-ordinates
@@ -132,14 +133,9 @@ it returns a default value. The result is a size 4 observation vector
 for each agent.
 
 The observation can be fed to the network using the built in
-:py:meth:`esquilax.evo.map_params` function that maps the observations
+:py:meth:`esquilax.ml.get_actions` function that maps the observations
 across population parameter samples. The output of this function is
 the steering updates for each agent.
-
-.. note::
-
-   We could also use :py:meth:`esquilax.evo.broadcast_params` to provide
-   the same parameters to each agent.
 
 The outputs of the network are then converted to updated agent headings
 and speeds
@@ -220,7 +216,9 @@ initialisation and model update in a :py:class:`esquilax.SimEnv` class:
        def default_params(self) -> Params:
            return Params()
 
-       def initial_state(self, k: chex.PRNGKey) -> Boid:
+       def initial_state(
+           self, k: chex.PRNGKey, params: Params
+       ) -> Boid:
            k1, k2, k3 = jax.random.split(k, 3)
 
            return Boid(
@@ -245,16 +243,18 @@ initialisation and model update in a :py:class:`esquilax.SimEnv` class:
            k: chex.PRNGKey,
            params: Params,
            boids: Boid,
-       ) -> Tuple[Boid, esquilax.evo.TrainingData]:
-           population, params = params
+           *,
+           agent_params,
+       ) -> Tuple[Boid, evo.TrainingData]:
+
            n_nb, x_nb, s_nb, h_nb = observe(
                k, params, boids, boids, pos=boids.pos
            )
            obs = flatten_observations(
                k, params, (boids, n_nb, x_nb, s_nb, h_nb)
            )
-           actions = esquilax.evo.map_params(
-               self.apply_fun, population, obs
+           actions = esquilax.ml.get_actions(
+               self.apply_fun, False, agent_params, obs
            )
            headings, speeds = update_velocity(
                k, params, (actions, boids)
@@ -264,7 +264,7 @@ initialisation and model update in a :py:class:`esquilax.SimEnv` class:
            boids = Boid(pos=pos, heading=headings, speed=speeds)
            return (
                boids,
-               esquilax.evo.TrainingData(rewards=rewards, records=pos)
+               evo.TrainingData(rewards=rewards, records=pos)
            )
 
 - Static simulation parameters (in this case the number of agents
@@ -272,9 +272,10 @@ initialisation and model update in a :py:class:`esquilax.SimEnv` class:
 - The initialisation method initialises random initial positions and
   velocities of the boids.
 - The step method combines the simulation updates. The current population
-  or parameter sample is provided as part of the simulation parameters.
-  The step function should also return a :py:class:`esquilax.evo.TrainingData`
-  class containing generated rewards and any state data to be recorded.
+  or parameter sample is provided as a keyword argument ``agent_params``.
+  The step function should also return a :py:class:`esquilax.ml.evo.TrainingData`
+  class (containing generated rewards and any state data to be recorded) as
+  data to be recorded.
 
 Training
 --------
@@ -322,7 +323,7 @@ functionality:
        network = MLP(layer_width=layer_width, actions=2)
        net_params = network.init(k, jnp.zeros(4))
 
-       strategy = esquilax.evo.BasicStrategy(
+       strategy = evo.BasicStrategy(
            net_params, strategy, n_agents
        )
        evo_params = strategy.default_params()
@@ -335,7 +336,7 @@ functionality:
            env_params.max_speed
        )
 
-       evo_state, agent_rewards = esquilax.evo.train(
+       evo_state, agent_rewards = evo.train(
            strategy,
            env,
            n_generations,
@@ -354,7 +355,7 @@ functionality:
        )
        params_shaped = strategy.reshape_params(params)
 
-       test_data = esquilax.evo.test(
+       test_data = evo.test(
            params_shaped,
            env,
            n_steps,
@@ -368,13 +369,13 @@ functionality:
 
 In this case we first initialise a random key and
 dummy parameters for the neural-network. We then initialise an evolutionary
-strategy from these parameters using :py:class:`esquilax.evo.BasicStrategy`.
+strategy from these parameters using :py:class:`esquilax.ml.evo.BasicStrategy`.
 We then also initialise the evolutionary strategy state, and the training
 environment.
 
-We can then use :py:meth:`esquilax.evo.train` to generate
+We can then use :py:meth:`esquilax.ml.evo.train` to generate
 a trained strategy state and record of rewards over training,
-then use :py:meth:`esquilax.evo.test`
+then use :py:meth:`esquilax.ml.evo.test`
 to test the trained strategy, and to generate trajectories for
 analysis/visualisation.
 
