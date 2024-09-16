@@ -387,3 +387,68 @@ analysis/visualisation.
    >>> args = (params, 10, 2, 1, 10)
    >>> _ = evo_boids(*args, show_progress=False, layer_width=4)
    ParameterReshaper: 50 parameters detected for optimization.
+
+Multi-Strategy
+--------------
+
+The above can be (relatively) easily extended to accommodate the
+training of multiple strategies in the same training loop. Multiple
+strategies can be passed as a collection, e.g. as a tuple
+
+.. code-block:: python
+
+   strategies = (
+       evo.BasicStrategy(net_params_a, strategy_a, n_agents_a),
+       evo.BasicStrategy(net_params_b, strategy_b, n_agents_b),
+   )
+
+or a `Flax FrozenDict <https://flax.readthedocs.io/en/latest/api_reference/flax.core.frozen_dict.html#flax-core-frozen-dict-package>`_
+
+.. code-block:: python
+
+   strategies = FrozenDict(
+       a=evo.BasicStrategy(net_params_a, strategy_a, n_agents_a),
+       b=evo.BasicStrategy(net_params_b, strategy_b, n_agents_b),
+   )
+
+The strategy parameters and state should then have the same tree structure
+
+.. code-block:: python
+
+   evo_params = FrozenDict(
+       a=strategies["a"].default_params(),
+       b=strategies["b"].default_params(),
+   )
+   evo_states = FrozenDict(
+       a=strategies["a"].initialize(k1, evo_params["a"]),
+       b=strategies["b"].initialize(k2, evo_params["b"],
+   )
+
+Finally we should ensure that the step function is updated to accommodate the
+tree structure. The ``agent_params`` argument will have the same tree structure,
+and the training data returned by the step method should also have this structure,
+e.g.:
+
+.. code-block:: python
+
+   def step(
+       self,
+       _i: int,
+       k: chex.PRNGKey,
+       params: Params,
+       boids: Boid,
+       *,
+       agent_params,
+   ) -> Tuple[Boid, evo.TrainingData]:
+       # agent_params has structure FrozenDict(a=..., b=...)
+       ...
+       # Then return data with the same structure
+       training_data = FrozenDict(
+           a=evo.TrainingData(rewards=rewards_a, records=pos_a),
+           b=evo.TrainingData(rewards=rewards_b, records=pos_b)
+       )
+       return boids, training_data
+
+Esquilax will then handle mapping over the individual strategies during
+training. Strategies will be updated and queried independently, but can
+be made to interact via the simulation.
