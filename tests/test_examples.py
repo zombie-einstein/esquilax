@@ -1,5 +1,5 @@
 import examples
-from examples.boids.evolutionary import updates
+from examples.boids import updates
 
 
 def test_opinion_dynamics_example():
@@ -31,7 +31,7 @@ def test_evo_boids_a():
     n_samples = 2
     n_steps = 8
 
-    f = examples.boids.evolutionary.env
+    f = examples.boids.evolutionary
     params = updates.Params()
     _, scores, (test_paths, test_headings), test_rewards = f.evo_boids(
         params,
@@ -57,7 +57,7 @@ def test_evo_boids_b():
     n_samples = 2
     n_steps = 25
 
-    f = examples.boids.evolutionary.env
+    f = examples.boids.evolutionary
     params = updates.Params()
     _, scores, (test_paths, test_headings), test_rewards = f.evo_boids(
         params,
@@ -74,3 +74,20 @@ def test_evo_boids_b():
     assert test_paths.shape == (n_samples, n_steps, n_agents, 2)
     assert test_headings.shape == (n_samples, n_steps, n_agents)
     assert test_rewards.shape == (n_samples, n_steps, n_agents)
+
+
+def test_rl_boids():
+    n_agents = 10
+    n_epochs = 3
+    n_env = 2
+    n_steps = 25
+
+    agent, rewards = examples.boids.rl.rl_boids(
+        updates.Params(),
+        n_agents,
+        n_epochs,
+        n_env,
+        n_steps,
+        layer_width=4,
+        show_progress=False,
+    )
