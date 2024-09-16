@@ -40,9 +40,9 @@ def key_tree_split(
         def is_leaf(x):
             return isinstance(x, typ)
 
-    treedef = jax.tree.structure(tree, is_leaf=is_leaf)
-    keys = jax.random.split(key, treedef.num_leaves)
-    keys = jax.tree.unflatten(treedef, keys)
+    tree_def = jax.tree.structure(tree, is_leaf=is_leaf)
+    keys = jax.random.split(key, tree_def.num_leaves)
+    keys = jax.tree.unflatten(tree_def, keys)
     return keys
 
 
