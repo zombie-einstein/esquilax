@@ -358,6 +358,7 @@ functionality:
        test_data = evo.test(
            params_shaped,
            env,
+           n_samples,
            n_steps,
            False,
            k,

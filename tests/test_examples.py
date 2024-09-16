@@ -46,9 +46,9 @@ def test_evo_boids_a():
     )
 
     assert scores.shape == (n_generations, pop_size)
-    assert test_paths.shape == (pop_size, n_steps, n_agents, 2)
-    assert test_headings.shape == (pop_size, n_steps, n_agents)
-    assert test_rewards.shape == (pop_size, n_steps, n_agents)
+    assert test_paths.shape == (n_samples, pop_size, n_steps, n_agents, 2)
+    assert test_headings.shape == (n_samples, pop_size, n_steps, n_agents)
+    assert test_rewards.shape == (n_samples, pop_size, n_steps, n_agents)
 
 
 def test_evo_boids_b():
@@ -71,6 +71,6 @@ def test_evo_boids_b():
     )
 
     assert scores.shape == (n_generations, n_agents)
-    assert test_paths.shape == (n_steps, n_agents, 2)
-    assert test_headings.shape == (n_steps, n_agents)
-    assert test_rewards.shape == (n_steps, n_agents)
+    assert test_paths.shape == (n_samples, n_steps, n_agents, 2)
+    assert test_headings.shape == (n_samples, n_steps, n_agents)
+    assert test_rewards.shape == (n_samples, n_steps, n_agents)

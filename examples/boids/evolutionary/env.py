@@ -116,7 +116,7 @@ def evo_boids(
     params_shaped = strategy.reshape_params(params)
 
     test_data = esquilax.ml.evo.test(
-        params_shaped, env, n_steps, shared_policy, k, env_params=env_params
+        params_shaped, env, n_samples, n_steps, shared_policy, k, env_params=env_params
     )
 
     return evo_state, agent_rewards, test_data.records, test_data.rewards

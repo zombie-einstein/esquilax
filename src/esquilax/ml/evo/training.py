@@ -31,7 +31,7 @@ from .types import TrainingData
         "strategies",
         "env",
         "n_generations",
-        "n_samples",
+        "n_env",
         "n_steps",
         "map_population",
         "show_progress",
@@ -41,7 +41,7 @@ def train(
     strategies: TypedPyTree[Strategy],
     env: Sim,
     n_generations: int,
-    n_samples: int,
+    n_env: int,
     n_steps: int,
     map_population: bool,
     k: chex.PRNGKey,
@@ -129,7 +129,7 @@ def train(
 
     n_generations: int
         Number of training generations
-    n_samples: int
+    n_env: int
         Number of Monte-Carlo samples to test each population
         or parameter samples across.
     n_steps: int
@@ -177,7 +177,7 @@ def train(
         def inner(_pop) -> TrainingData:
             return batch_sim_runner(
                 env,
-                n_samples,
+                n_env,
                 n_steps,
                 k2,
                 show_progress=False,
@@ -222,6 +222,7 @@ def train(
     jax.jit,
     static_argnames=(
         "env",
+        "n_env",
         "n_steps",
         "map_population",
         "show_progress",
@@ -230,6 +231,7 @@ def train(
 def test(
     population_shaped: chex.ArrayTree,
     env: Sim,
+    n_env: int,
     n_steps: int,
     map_population: bool,
     k: chex.PRNGKey,
@@ -250,6 +252,9 @@ def test(
         by simulation agents.
     env: esquilax.env.SimEnv
         Esquilax simulation training environment
+    n_env: int
+        Number of Monte-Carlo samples to test each population
+        or parameter samples across.
     n_steps: int
         Number of simulation steps.
     map_population: bool
@@ -278,16 +283,15 @@ def test(
     env_params = env.default_params() if env_params is None else env_params
 
     def inner(_pop):
-        _initial_state = env.initial_state(k1, env_params)
-        _, _testing_data, _ = env.run(
+        return batch_sim_runner(
+            env,
+            n_env,
             n_steps,
             k2,
-            env_params,
-            _initial_state,
-            show_progress=show_progress,
+            show_progress=False,
+            params=env_params,
             agent_params=_pop,
         )
-        return _testing_data
 
     if map_population:
         records = jax.vmap(inner)(population_shaped)

@@ -7,6 +7,7 @@ policies (via `Evosax`_) using esquilax as a multi-agent
 
 .. _Evosax: https://github.com/RobertTLange/evosax
 """
+from . import tree_utils
 from .strategy import BasicStrategy, Strategy
 from .training import test, train
 from .types import TrainingData
