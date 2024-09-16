@@ -13,3 +13,4 @@ Examples
 
    examples/hard_coded_boids
    examples/evo_boids
+   examples/rl_boids

@@ -1,3 +1,5 @@
+.. _evo_boids:
+
 Evolutionary Boids
 ==================
 
