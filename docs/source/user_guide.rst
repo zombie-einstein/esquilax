@@ -146,6 +146,14 @@ along with identity ``0``, but other options could be:
 
 or you can define your own reduction function.
 
+Neuro-Evolution and Reinforcement Learning
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Esquilax provides utilities and functionality for training agent policies, where
+an Esquilax simulation is used as a multi-agent training environment. They allow
+for multiple strategies or RL policies to be trained inside the same training loop.
+See :py:mod:`esquilax.ml` for more details.
+
 Tips
 ----
 

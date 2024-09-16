@@ -1,6 +1,17 @@
 """
 Wrappers for `Evosax`_ strategy functionality
 
+Class definitions wrapping strategy functionality
+for use when training policies within an Esquilax
+simulation. Classes implementing
+:py:class:`esquilax.ml.evo.Strategy` can be passed
+to :py:class:`esquilax.ml.evo.train` which will then
+automatically handle optimisation.
+
+Multiple strategies can be passed to
+:py:class:`esquilax.ml.evo.train` allowing training
+of multiple strategies within the same class.
+
 .. _Evosax: https://github.com/RobertTLange/evosax
 """
 from functools import partial
@@ -15,23 +26,13 @@ from flax.typing import FrozenVariableDict
 class Strategy:
     """
     Abstract class wrapping Evosax strategy functionality
-
-    This class can be used to encapsulate multiple populations,
-    for example to have multiple agent types parameterised
-    by independent populations.
-
-    .. note::
-
-       In the case of multiple policies, the tree structure
-       should be consistent across population states,
-       population samples etc.
     """
 
     def initialize(
         self, k: chex.PRNGKey, evo_params: evosax.EvoParams
     ) -> evosax.EvoState:
         """
-        Initialise strategy state/states
+        Initialise strategy state
 
         Parameters
         ----------
@@ -43,7 +44,7 @@ class Strategy:
         Returns
         -------
         evosax.EvoState
-            Strategy state or collection of states
+            Strategy state
         """
         raise NotImplementedError
 
@@ -67,12 +68,11 @@ class Strategy:
         Parameters
         ----------
         population
-            Array (or collection of arrays) of parameters
-            sampled from the strategy/strategies.
+            Array of parameters sampled from the strategy.
 
         Returns
         -------
-        Reshaped parameters or collection of parameters
+        Reshaped parameters
         """
         return population
 
@@ -83,12 +83,19 @@ class Strategy:
 
         Rescale/reshape rewards generated during a simulation.
 
+        .. warning::
+
+           Evosax expects to fitness minimised, so either the
+           training environment should return values to
+           be minimised, or rewards returned from the
+           environment should be rescaled by this method.
+
         Parameters
         ----------
         population
-            Strategy population or collection of populations
+            Strategy population
         fitness: jax.numpy.array
-            Fitness/rewards (or collection of)
+            Fitness/rewards
 
         Returns
         -------
@@ -109,15 +116,14 @@ class Strategy:
         k: jax.random.PRNGKey
             JAX random key
         evo_state: evosax.EvoState
-            Strategy state (or collection of states)
+            Strategy state
         evo_params: evosax.EvoParams
-            Strategy parameters (or collection of parameters)
+            Strategy parameters
 
         Returns
         -------
         tuple
-            Population array (or collection of arrays) and
-            updated state of the strategy/strategies
+            Population array and updated state of the strategy
         """
         raise NotImplementedError
 
@@ -130,32 +136,32 @@ class Strategy:
         evo_params: evosax.EvoParams,
     ) -> evosax.EvoState:
         """
-        Update strategy state/states
+        Update strategy state
 
         Parameters
         ----------
         population: chex.ArrayTree
-            Population array/arrays
+            Population array
         fitness: chex.ArrayTree
-            Fitness array/arrays
+            Fitness array
         evo_state: evosax.EvoState
-            Strategy state or collection of states
+            Strategy state
         evo_params: evosax.EvoParams
-            Strategy params or collection of params
+            Strategy params
 
         Returns
         -------
         evosax.EvoState
-            Update state/states
+            Update state
         """
         raise NotImplementedError
 
 
 class BasicStrategy(Strategy):
     """
-    Basic strategy representing a single policy
+    Basic strategy derived from a Flax neural network
 
-    Wrapper around a single strategy, with parameters
+    Wrapper around a strategy, with parameters
     initialised from a Flax neural-network.
     """
 
@@ -184,6 +190,12 @@ class BasicStrategy(Strategy):
             Use ``z_score_fitness`` for fitness-shaping, default ``False``.
         maximize_fitness: bool, optional
             Use ``maximize_fitness`` for fitness-shaping, default ``True``.
+
+            .. warning::
+
+               Evosax expects that fitness should be minimised, so this should
+               be ``True`` if the environment returns rewards to be maximised.
+
         **strategy_kwargs
             Keyword arguments to pass to the strategy constructor.
 
