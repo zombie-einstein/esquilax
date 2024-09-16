@@ -1,7 +1,7 @@
 """
 Wrappers for `Evosax`_ strategy functionality
 
-.. _Evosax: https://github.com/RobertTLange/evosax?tab=readme-ov-file
+.. _Evosax: https://github.com/RobertTLange/evosax
 """
 from functools import partial
 from typing import Any, Dict, Tuple, Union

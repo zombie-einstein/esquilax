@@ -4,6 +4,7 @@ import jax.numpy as jnp
 import pytest
 
 from esquilax import ml
+from esquilax.ml import common
 
 
 @pytest.fixture
@@ -54,3 +55,11 @@ def test_sample_action_actions(broadcast, random_apply_fun):
         action = ml.sample_actions(random_apply_fun, False, k, params, obs)
 
     assert action.shape == (10,)
+
+
+def test_tuple_tree_transpose():
+    a = {"a": 1, "b": 2}
+    b = {"a": (1, (2, 3)), "b": (4, (5, 6))}
+    c = common.transpose_tree_of_tuples(a, b, 2)
+
+    assert c == ({"a": 1, "b": 4}, {"a": (2, 3), "b": (5, 6)})

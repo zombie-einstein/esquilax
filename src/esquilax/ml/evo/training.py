@@ -1,7 +1,7 @@
 """
 `Evosax`_ policy training and testing functionality
 
-.. _Evosax: https://github.com/RobertTLange/evosax?tab=readme-ov-file
+.. _Evosax: https://github.com/RobertTLange/evosax
 """
 from functools import partial
 from typing import Collection, Optional, Tuple
@@ -14,6 +14,7 @@ import jax_tqdm
 
 from esquilax.batch_runner import batch_sim_runner
 from esquilax.env import Sim, TSimParams
+from esquilax.ml.common import key_tree_split
 
 from .strategy import Strategy
 
@@ -58,9 +59,7 @@ def tree_ask(
     evo_states: Collection[evosax.EvoState],
     evo_params: Collection[evosax.EvoParams],
 ):
-    treedef = jax.tree.structure(strategies, is_leaf=lambda x: isinstance(x, Strategy))
-    keys = jax.random.split(key, treedef.num_leaves)
-    keys = jax.tree.unflatten(treedef, keys)
+    keys = key_tree_split(key, strategies, Strategy)
 
     def inner(strat, k, state, params):
         pop, state = strat.ask(k, state, params)

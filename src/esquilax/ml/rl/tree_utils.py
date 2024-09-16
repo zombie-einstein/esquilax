@@ -46,18 +46,7 @@ def sample_actions(
         observations,
         is_leaf=lambda x: isinstance(x, Agent),
     )
-    actions = jax.tree.map(
-        lambda _, x: x[0],
-        agents,
-        results,
-        is_leaf=lambda x: isinstance(x, Agent),
-    )
-    action_values = jax.tree.map(
-        lambda _, x: x[1],
-        agents,
-        results,
-        is_leaf=lambda x: isinstance(x, Agent),
-    )
+    actions, action_values = common.transpose_tree_of_tuples(agents, results, 2, Agent)
     return actions, action_values
 
 
@@ -95,16 +84,5 @@ def update_agents(
         trajectories,
         is_leaf=lambda x: isinstance(x, Agent),
     )
-    agents = jax.tree.map(
-        lambda _, x: x[0],
-        agents,
-        updates,
-        is_leaf=lambda x: isinstance(x, Agent),
-    )
-    train_data = jax.tree.map(
-        lambda _, x: x[1],
-        agents,
-        updates,
-        is_leaf=lambda x: isinstance(x, Agent),
-    )
+    agents, train_data = common.transpose_tree_of_tuples(agents, updates, 2, Agent)
     return agents, train_data
