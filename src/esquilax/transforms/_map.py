@@ -93,7 +93,7 @@ def amap(f: typing.Callable) -> typing.Callable:
 
     Parameters
     ----------
-    f: Callable
+    f
         Update function that should have the signature
 
         .. code-block:: python

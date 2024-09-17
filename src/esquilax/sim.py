@@ -27,11 +27,6 @@ class Sim(Generic[TSimParams, TSimState]):
         """
         Return default simulation parameters
 
-        Parameters
-        ----------
-        k: jax.random.PRNGKey
-            JAX random key.
-
         Returns
         -------
         TSimParams
@@ -40,15 +35,15 @@ class Sim(Generic[TSimParams, TSimState]):
         raise NotImplementedError
 
     @partial(jax.jit, static_argnums=(0,))
-    def initial_state(self, k: chex.PRNGKey, params: TSimParams) -> TSimState:
+    def initial_state(self, key: chex.PRNGKey, params: TSimParams) -> TSimState:
         """
         Initialise the initial state of the simulation
 
         Parameters
         ----------
-        k: jax.random.PRNGKey
+        key
             JAX random key.
-        params: TSimParams
+        params
             Simulation parameters
 
         Returns
@@ -62,7 +57,7 @@ class Sim(Generic[TSimParams, TSimState]):
     def step(
         self,
         i: int,
-        k: chex.PRNGKey,
+        key: chex.PRNGKey,
         params: TSimParams,
         state: TSimState,
         **kwargs: Any
@@ -87,13 +82,13 @@ class Sim(Generic[TSimParams, TSimState]):
 
         Parameters
         ----------
-        i: int
+        i
             Current step number
-        k: jax.random.PRNGKey
+        key
             JAX random key
-        params: TSimParams
+        params
             Simulation time-independent parameters
-        state: TSimState
+        state
             Simulation state
         **kwargs
             Any additional keyword arguments.
@@ -110,7 +105,7 @@ class Sim(Generic[TSimParams, TSimState]):
     def run(
         self,
         n_steps: int,
-        k: chex,
+        key: chex.PRNGKey,
         params: TSimParams,
         initial_state: TSimState,
         show_progress: bool = True,
@@ -121,15 +116,15 @@ class Sim(Generic[TSimParams, TSimState]):
 
         Parameters
         ----------
-        n_steps: int
+        n_steps
             Number of simulation steps
-        k: jax.random.PRNGKey
+        key
             JAX random key
-        params: TSimParams
+        params
             Simulation time-independent parameters
-        initial_state: TSimState
+        initial_state
             Initial state of the simulation
-        show_progress: bool, optional
+        show_progress
             If ``True`` a progress bar will be displayed.
             Default ``True``
         **step_kwargs
@@ -151,7 +146,7 @@ class Sim(Generic[TSimParams, TSimState]):
             params,
             initial_state,
             n_steps,
-            k,
+            key,
             show_progress=show_progress,
         )
 
@@ -161,7 +156,7 @@ class Sim(Generic[TSimParams, TSimState]):
     def init_and_run(
         self,
         n_steps: int,
-        k: chex,
+        key: chex.PRNGKey,
         show_progress: bool = True,
         params: Optional[TSimParams] = None,
         **step_kwargs
@@ -171,14 +166,14 @@ class Sim(Generic[TSimParams, TSimState]):
 
         Parameters
         ----------
-        n_steps: int
+        n_steps
             Number of simulation steps to run
-        k: jax.random.PRNGKey
+        key
             JAX random key
-        show_progress: bool, optional
+        show_progress
             If ``True`` a progress bar will be displayed.
             Default ``True``
-        params: TSimParams, optional
+        params
             Optional simulation parameters, if not provided
             default sim parameters will be used.
         **step_kwargs
@@ -195,13 +190,13 @@ class Sim(Generic[TSimParams, TSimState]):
             - Tree of recorded data
             - Updated JAX random key
         """
-        k1, k2 = jax.random.split(k, 2)
+        k1, k2 = jax.random.split(key, 2)
 
         params = self.default_params() if params is None else params
         initial_state = self.initial_state(k1, params)
         final_state, records, _ = self.run(
             n_steps,
-            k,
+            k2,
             params,
             initial_state,
             show_progress=show_progress,

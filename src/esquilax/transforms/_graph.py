@@ -82,7 +82,7 @@ def edge_map(f: Callable) -> Callable:
 
     Parameters
     ----------
-    f: Callable
+    f
         Function with the signature
 
         .. code-block:: python
@@ -204,13 +204,13 @@ def graph_reduce(
 
     Parameters
     ----------
-    reduction: Callable
+    reduction
         Binary monoidal reduction function
-    default: Any
+    default
         Default/identity value result value
-    n: int, optional
+    n
         Number of nodes, should be provided if start-node data is ``None``
-    f: Callable
+    f
         Function with the signature
 
         .. code-block:: python
@@ -317,12 +317,12 @@ def random_neighbour(default: Any, n: int = -1) -> Callable:
 
     Parameters
     ----------
-    default: Any
+    default
         Value returned when a node has no neighbours
-    n: int, optional
+    n
         Number of start nodes, should be provided if
         start-node data is None
-    f: Callable
+    f
         Function with the signature
 
         .. code-block:: python

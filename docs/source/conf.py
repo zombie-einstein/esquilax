@@ -6,10 +6,9 @@ author = "zombie-einstein"
 release = pkg_resources.get_distribution("esquilax").version
 
 extensions = [
+    "autoapi.extension",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
-    "sphinx.ext.doctest",
-    "autoapi.extension",
     "sphinx.ext.doctest",
 ]
 
@@ -29,6 +28,8 @@ autoapi_template_dir = "_autoapi_templates"
 
 exclude_patterns = ["_autoapi_templates/**"]
 
+add_module_names = False
+
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 
@@ -38,15 +39,17 @@ napoleon_include_special_with_doc = False
 napoleon_use_admonition_for_examples = False
 napoleon_use_admonition_for_notes = True
 napoleon_use_admonition_for_references = False
-napoleon_use_ivar = True
-napoleon_use_rtype = False
+napoleon_use_ivar = False
+napoleon_use_rtype = True
+napoleon_use_param = True
 napoleon_preprocess_types = True
 napoleon_attr_annotations = True
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/stable", None),
-    "jax": ("https://jax.readthedocs.io/en/latest/", None),
+    "jax": ("https://jax.readthedocs.io/en/latest", None),
+    "chex": ("https://chex.readthedocs.io/en/latest", None),
 }
 
 html_title = "Esquilax"

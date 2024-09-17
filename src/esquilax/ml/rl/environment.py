@@ -1,3 +1,6 @@
+"""
+Reinforcement learning environment interface
+"""
 from functools import partial
 from typing import Generic, Tuple, TypeVar
 

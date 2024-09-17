@@ -42,9 +42,9 @@ def sort_edges(x: chex.Array, *args) -> Union[chex.Array, Tuple[chex.Array, Any]
 
     Parameters
     ----------
-    x: jax.ndarray
+    x
         Array of edge indices in the shape :code:`[2, n_edges]`
-    *args: Any
+    *args
         Optional arguments representing edge data. These arguments
         can also be PyTrees which will then sort all members
         of the tree.
@@ -96,9 +96,9 @@ def index_bins(indices: chex.Array, length: int) -> Tuple[chex.Array, chex.Array
 
     Parameters
     ----------
-    indices: jax.ndarray
+    indices
         1D array of integer indices
-    length: int
+    length
         Number of indices to count, e.g. the
         number of bins to generate and count.
 

@@ -30,8 +30,8 @@ def get_size(tree: chex.ArrayTree) -> int:
 
     Parameters
     ----------
-    tree: PyTree
-        Tree of arrays
+    tree
+        PyTree of arrays
 
     Raises
     ------
@@ -69,7 +69,7 @@ def get_keyword_args(f: Callable) -> List[str]:
 
     Parameters
     ----------
-    f: Callable
+    f
         Function to inspect
 
     Returns

@@ -56,32 +56,33 @@ def train(
     n_env: int,
     n_env_steps: int,
     show_progress: bool = True,
-):
+) -> Tuple[TypedPyTree[Agent], chex.ArrayTree, chex.ArrayTree]:
     """
     Train an RL-agent or agents with a given environment
 
     Parameters
     ----------
-    key: jax.random.PRNGKey
+    key
         JAX random key.
-    agents: TypedPyTree[Agent]
+    agents
         RL agent, or collection of agents. Multiple
         agents/policies can be provided to allow for
         training of multiple agent types.
-    env: Environment
+    env
         Training environment/simulation. This should
-        implement a Gymnax Environment base class.
-    env_params: EnvParams
+        implement the :py:class:`esquilax.ml.rl.Environment`
+        interface.
+    env_params
         Environment parameters.
-    n_epochs: int
+    n_epochs
         Number of training epochs.
-    n_env:
+    n_env
         Number of environments to train across per epoch.
-    n_env_steps:
+    n_env_steps
         Number of steps to run in each environment per epoch.
-    show_progress: bool, optional
+    show_progress
         If ``True`` a training progress bar will be displayed.
-        Default ``True``
+        Default ``True``.
 
     Returns
     -------
@@ -142,7 +143,7 @@ def test(
     n_env: int,
     n_env_steps: int,
     show_progress: bool = True,
-):
+) -> Trajectory:
     """
     Test agent(s) performance
 
@@ -152,22 +153,22 @@ def test(
 
     Parameters
     ----------
-    key: jax.random.PRNGKey
+    key
         JAX random key.
-    agents: TypedPyTree[Agent]
+    agents
         RL agent, or collection of agents. Multiple
         agents/policies can be provided to allow for
         testing of multiple agent types.
-    env: Environment
+    env
         Training environment/simulation. This should
         implement a Gymnax Environment base class.
-    env_params: EnvParams
+    env_params
         Environment parameters.
-    n_env:
+    n_env
         Number of environments to test across.
-    n_env_steps:
+    n_env_steps
         Number of steps to run in each environment.
-    show_progress: bool, optional
+    show_progress
         If ``True`` a testing progress bar will be displayed.
         Default ``True``
 
