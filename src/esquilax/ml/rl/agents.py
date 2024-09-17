@@ -19,8 +19,9 @@ class Agent(TrainState):
     Outlines functionality required for agents to used
     as part of esquilax rl training functionality.
 
-    This class extends the flax Trainstate, containing
-    a network function and parameters, along with an
+    This class extends
+    :py:class:`flax.training.train_state.TrainState`,
+    containing a network function and parameters, along with an
     optimiser and corresponding state.
 
     An ``Agent`` can represent multiple agents, dependent
@@ -61,7 +62,7 @@ class Agent(TrainState):
 
         Returns
         -------
-        tuple
+        tuple[esquilax.ml.rl.Agent, chex.ArrayTree]
             Tuple containing an updated ``Agent`` and any associated data
             e.g. training losses from the update.
         """
@@ -80,7 +81,7 @@ class Agent(TrainState):
 
         Returns
         -------
-        Agent
+        esquilax.ml.rl.Agent
             Updated agent
         """
         raise NotImplementedError
@@ -115,7 +116,7 @@ class SharedPolicyAgent(Agent):
 
         Returns
         -------
-        SharedPolicyAgent
+        esquilax.ml.rl.SharedPolicyAgent
             Initialised agent.
         """
         fake_args = jnp.zeros(observation_shape)
@@ -123,6 +124,21 @@ class SharedPolicyAgent(Agent):
         return cls.create(apply_fn=model.apply, params=params, tx=tx)
 
     def apply_grads(self, *, grads, **kwargs) -> Self:
+        """
+        Apply gradients to the agent parameters and optimiser
+
+        Parameters
+        ----------
+        grads
+            Gradients corresponding to the agent parameters.
+        **kwargs
+            Any keyword arguments to pass to underlying ``apply_gradients`` function.
+
+        Returns
+        -------
+        esquilax.ml.rl.SharedPolicyAgent
+            Updated agent
+        """
         return self.apply_gradients(grads=grads, **kwargs)
 
 
@@ -165,7 +181,7 @@ class BatchPolicyAgent(Agent):
 
         Returns
         -------
-        BatchPolicyAgent
+        esquilax.ml.rl.BatchPolicyAgent
             Initialised agent.
         """
         fake_args = jnp.zeros(observation_shape)
@@ -195,7 +211,7 @@ class BatchPolicyAgent(Agent):
 
         Returns
         -------
-        Agent
+        esquilax.ml.rl.BatchPolicyAgent
             Updated agent
         """
         return jax.vmap(lambda a, g: a.apply_gradients(grads=g, **kwargs))(self, grads)

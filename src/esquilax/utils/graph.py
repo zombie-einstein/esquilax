@@ -51,7 +51,8 @@ def sort_edges(x: chex.Array, *args) -> Union[chex.Array, Tuple[chex.Array, Any]
 
     Returns
     -------
-    Sorted indices and sorted optional data
+    tuple
+        Sorted indices and sorted optional data
     """
     idxs = jnp.lexsort((x[1], x[0]))
     x = jnp.stack([x[0][idxs], x[1][idxs]])
@@ -104,7 +105,7 @@ def index_bins(indices: chex.Array, length: int) -> Tuple[chex.Array, chex.Array
 
     Returns
     -------
-    [jax.ndarray, jax.ndarray]
+    tuple[jax.numpy.ndarray, jax.numpy.ndarray]
         Count/frequency of each index, and bins boundaries
     """
     bin_counts = jnp.bincount(indices, length=length)

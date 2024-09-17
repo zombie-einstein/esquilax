@@ -9,11 +9,11 @@ import jax
 import jax.numpy as jnp
 import jax_tqdm
 
-from esquilax.ml.common import TypedPyTree
+from esquilax.typing import TEnvParams, TypedPyTree
 
 from . import tree_utils
 from .agents import Agent
-from .environment import Environment, TEnvParams
+from .environment import Environment
 from .types import Trajectory
 
 
@@ -147,9 +147,8 @@ def test(
     """
     Test agent(s) performance
 
-    Test agents against a test environment,
-    returning trajectory data gathered
-    over training.
+    Asses agents against a test environment,
+    returning trajectory data gathered over training.
 
     Parameters
     ----------
@@ -174,7 +173,7 @@ def test(
 
     Returns
     -------
-    Trajectory
+    esquilax.ml.rl.Trajectory
         Update trajectories gathered over testing.
     """
     step = _step(env_params, env)

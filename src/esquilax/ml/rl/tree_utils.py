@@ -1,19 +1,20 @@
 """
-Tree-mapping utilities
+Agent PyTree mapping utilities
 """
-from typing import Any, Tuple
+from typing import Tuple
 
 import chex
 import jax
 
 from esquilax.ml import common
+from esquilax.typing import TypedPyTree
 
 from .agents import Agent
 from .types import Trajectory
 
 
 def sample_actions(
-    key: chex.PRNGKey, agents: common.TypedPyTree[Agent], observations: chex.ArrayTree
+    key: chex.PRNGKey, agents: TypedPyTree[Agent], observations: chex.ArrayTree
 ) -> Tuple[chex.ArrayTree, chex.ArrayTree]:
     """
     Map over a tree of agents, sampling actions from observations
@@ -33,7 +34,7 @@ def sample_actions(
 
     Returns
     -------
-    tuple
+    tuple[chex.ArrayTree, chex.ArrayTree]
         Tuple containing actions, and any additional values
         associated with the actions. Both have the same
         tree structure as the argument agents.
@@ -52,9 +53,9 @@ def sample_actions(
 
 def update_agents(
     key: chex.PRNGKey,
-    agents: common.TypedPyTree[Agent],
-    trajectories: common.TypedPyTree[Trajectory],
-) -> Tuple[common.TypedPyTree[Agent], Any]:
+    agents: TypedPyTree[Agent],
+    trajectories: TypedPyTree[Trajectory],
+) -> Tuple[TypedPyTree[Agent], chex.ArrayTree]:
     """
     Update agent states from gathered trajectories
 
@@ -69,7 +70,7 @@ def update_agents(
 
     Returns
     -------
-    tuple
+    tuple[esquilax.typing.TypedPyTree[esquilax.ml.rl.Agent], chex.ArrayTree]
         Tuple containing PyTrees of updated
         agents, and any data returned from training
         (e.g. training loss). Both trees have the same

@@ -1,5 +1,5 @@
 """
-Function and data Utilities
+Function and data utilities
 """
 import inspect
 from typing import Callable, List

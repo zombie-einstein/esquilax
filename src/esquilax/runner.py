@@ -66,7 +66,7 @@ def sim_runner(
 
     Returns
     -------
-    [Any, Any, jax.PRNGKey]
+    [Any, Any, chex.PRNGKey]
         Tuple containing
 
         - The final state of the simulation

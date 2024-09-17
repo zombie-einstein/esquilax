@@ -1,3 +1,6 @@
+"""
+RL related data classes
+"""
 import chex
 
 

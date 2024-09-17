@@ -1,23 +1,22 @@
 """
 Reinforcement learning environment interface
 """
+import typing
 from functools import partial
-from typing import Generic, Tuple, TypeVar
 
 import chex
 import jax
 
-TEnvState = TypeVar("TEnvState")
-TEnvParams = TypeVar("TEnvParams")
+from esquilax.typing import TEnvParams, TEnvState
 
 
-class Environment(Generic[TEnvState, TEnvParams]):
+class Environment(typing.Generic[TEnvState, TEnvParams]):
     """
     RL environment interface for Esquilax simulations
 
     Basic abstract RL environment intended for use with
     built-in training and testing functionality
-    (:py:mod:`esquilax.ml.rl.training`).
+    (see :py:mod:`esquilax.ml.rl.training`).
     """
 
     def default_params(self) -> TEnvParams:
@@ -26,7 +25,7 @@ class Environment(Generic[TEnvState, TEnvParams]):
 
         Returns
         -------
-        TEnvParams
+        esquilax.typing.TEnvParams
             Environment parameters.
         """
         raise NotImplementedError
@@ -34,7 +33,7 @@ class Environment(Generic[TEnvState, TEnvParams]):
     @partial(jax.jit, static_argnums=(0,))
     def reset(
         self, key: chex.PRNGKey, params: TEnvParams
-    ) -> Tuple[chex.Array, TEnvState]:
+    ) -> typing.Tuple[chex.Array, TEnvState]:
         """
         Reset the state of the environment
 
@@ -50,7 +49,7 @@ class Environment(Generic[TEnvState, TEnvParams]):
 
         Returns
         -------
-        tuple[jax.numpy.ndarray, TEnvState]
+        tuple[jax.numpy.ndarray, esquilax.typing.TEnvState]
             Tuple containing
 
             - Agent observations, i.e. each agents
@@ -68,7 +67,7 @@ class Environment(Generic[TEnvState, TEnvParams]):
         params: TEnvParams,
         state: TEnvState,
         actions: chex.ArrayTree,
-    ) -> Tuple[chex.ArrayTree, TEnvState, chex.ArrayTree, chex.ArrayTree]:
+    ) -> typing.Tuple[chex.ArrayTree, TEnvState, chex.ArrayTree, chex.ArrayTree]:
         """
         Update the state of the environment given agent actions
 

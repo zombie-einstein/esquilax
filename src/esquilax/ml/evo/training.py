@@ -17,8 +17,8 @@ import jax.numpy as jnp
 import jax_tqdm
 
 from esquilax.batch_runner import batch_sim_runner
-from esquilax.ml.common import TypedPyTree
-from esquilax.sim import Sim, TSimParams
+from esquilax.sim import Sim
+from esquilax.typing import TSimParams, TypedPyTree
 
 from . import tree_utils
 from .strategy import Strategy
@@ -275,7 +275,7 @@ def test(
 
     Returns
     -------
-    TrainingData
+    esquilax.ml.evo.TrainingData
         Data collected over the course of the simulation.
     """
     k1, k2 = jax.random.split(key)

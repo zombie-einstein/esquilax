@@ -1,21 +1,24 @@
 """
 Utilities for handling PyTrees of :py:class:`esquilax.ml.evo.strategy`
 """
+from typing import Tuple
+
 import chex
 import evosax
 import jax
 
 from esquilax.ml import common
+from esquilax.typing import TypedPyTree
 
 from .strategy import Strategy
 
 
 def tree_ask(
     key: chex.PRNGKey,
-    strategies: common.TypedPyTree[Strategy],
-    evo_states: common.TypedPyTree[evosax.EvoState],
-    evo_params: common.TypedPyTree[evosax.EvoParams],
-):
+    strategies: TypedPyTree[Strategy],
+    evo_states: TypedPyTree[evosax.EvoState],
+    evo_params: TypedPyTree[evosax.EvoParams],
+) -> Tuple[TypedPyTree[evosax.EvoState], chex.ArrayTree, chex.ArrayTree]:
     """
     Call ``ask`` on PyTree of strategies, generating population samples
 
@@ -70,12 +73,12 @@ def tree_ask(
 
 
 def tree_tell(
-    strategies: common.TypedPyTree[Strategy],
+    strategies: TypedPyTree[Strategy],
     populations: chex.ArrayTree,
     rewards: chex.ArrayTree,
-    evo_states: common.TypedPyTree[evosax.EvoState],
-    evo_params: common.TypedPyTree[evosax.EvoParams],
-):
+    evo_states: TypedPyTree[evosax.EvoState],
+    evo_params: TypedPyTree[evosax.EvoParams],
+) -> Tuple[chex.ArrayTree, TypedPyTree[evosax.EvoState]]:
     """
     Call ``tell`` on a PyTree of strategies updating state
 

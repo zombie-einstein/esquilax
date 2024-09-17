@@ -168,10 +168,14 @@ class BasicStrategy(Strategy):
     initialised from a Flax neural-network.
     """
 
+    param_reshaper: evosax.ParameterReshaper
+    strategy: evosax.Strategy
+    fitness_shaper: evosax.FitnessShaper
+
     def __init__(
         self,
         network_params: Union[FrozenVariableDict, Dict[str, Any]],
-        strategy,
+        strategy: evosax.Strategy,
         pop_size: int,
         centered_rank_fitness: bool = True,
         z_score_fitness: bool = False,
@@ -201,15 +205,6 @@ class BasicStrategy(Strategy):
 
         **strategy_kwargs
             Keyword arguments to pass to the strategy constructor.
-
-        Attributes
-        ----------
-        param_reshaper
-            Parameter reshaper function
-        strategy
-            Initialised strategy
-        fitness_shaper
-            Fitness rescaler
         """
         self.param_reshaper = evosax.ParameterReshaper(network_params)
         self.strategy = strategy(

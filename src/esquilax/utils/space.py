@@ -30,7 +30,7 @@ def get_bins(x: chex.Array, n_cells: int, width: float) -> chex.Array:
 
     Returns
     -------
-    jax.ndarray
+    jax.numpy.ndarray
         Array of cell indices for each position
     """
     y = jnp.floor_divide(x, width).astype(jnp.int32)
@@ -66,7 +66,7 @@ def get_cell_neighbours(n_bins: int, topology: str) -> chex.Array:
 
     Returns
     -------
-    jax.ndarray
+    jax.numpy.ndarray
         2d array where each row contains a cells index
         and indices of its neighbours.
     """
@@ -113,7 +113,7 @@ def shortest_vector(a: chex.Array, b: chex.Array, length: float = 1.0) -> chex.A
 
     Returns
     -------
-    jax.ndarray
+    jax.numpy.ndarray
         Array representing the shortest vector between the points.
     """
     x = b - a

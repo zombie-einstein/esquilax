@@ -2,20 +2,19 @@
 Abstract class wrapping common simulation functionality
 """
 from functools import partial
-from typing import Any, Generic, Optional, Tuple, TypeVar
+from typing import Any, Generic, Optional, Tuple
 
 import chex
 import jax
 
 from esquilax.runner import sim_runner
 
-TSimState = TypeVar("TSimState")
-TSimParams = TypeVar("TSimParams")
+from .typing import TSimParams, TSimState
 
 
 class Sim(Generic[TSimParams, TSimState]):
     """
-    Base class wrapping simulation functionality for use in training loops
+    Base class wrapping simulation functionality for batch execution and ML use-cases
 
     Simulation environment base-class with methods used by training functions.
     For use inside JIT compiled training loops, static simulation
@@ -29,7 +28,7 @@ class Sim(Generic[TSimParams, TSimState]):
 
         Returns
         -------
-        TSimParams
+        esquilax.typing.TSimParams
             Simulation parameters
         """
         raise NotImplementedError
@@ -48,7 +47,7 @@ class Sim(Generic[TSimParams, TSimState]):
 
         Returns
         -------
-        TSimState
+        esquilax.typing.TSimState
             The initial state of the environment.
         """
         raise NotImplementedError
@@ -95,7 +94,7 @@ class Sim(Generic[TSimParams, TSimState]):
 
         Returns
         -------
-        tuple[TSimState, chex.ArrayTree]
+        tuple[esquilax.typing.TSimState, chex.ArrayTree]
             Tuple containing the updated simulation state, and
             any data to be recorded over the course of the simulation.
         """
@@ -134,7 +133,7 @@ class Sim(Generic[TSimParams, TSimState]):
 
         Returns
         -------
-        tuple[TSimState, chex.ArrayTree, jax,random.PRNGKey]
+        tuple[esquilax.typing.TSimState, chex.ArrayTree, jax,random.PRNGKey]
             Tuple containing
 
             - The final state of the simulation
@@ -183,7 +182,7 @@ class Sim(Generic[TSimParams, TSimState]):
 
         Returns
         -------
-        tuple[TSimState, chex.ArrayTree, jax,random.PRNGKey]
+        tuple[esquilax.typing.TSimState, chex.ArrayTree, jax,random.PRNGKey]
             Tuple containing
 
             - The final state of the simulation

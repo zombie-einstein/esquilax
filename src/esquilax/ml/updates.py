@@ -81,11 +81,11 @@ def sample_actions(
         otherwise they will be mapped over.
     key
         JAX random key.
-    params: chex.ArrayTree
+    params
         Function parameters. Since shared
         by agents these should be a single sample
         of parameters.
-    observations: chex.ArrayTree
+    observations
         Array/tree of individual observation for agents
         to be mapped over.
 
