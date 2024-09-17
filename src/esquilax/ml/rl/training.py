@@ -8,22 +8,22 @@ import chex
 import jax
 import jax.numpy as jnp
 import jax_tqdm
-from gymnax.environments.environment import Environment, EnvParams
 
 from esquilax.ml.common import TypedPyTree
 
 from . import tree_utils
 from .agents import Agent
+from .environment import Environment, TEnvParams
 from .types import Trajectory
 
 
-def _step(env_params: EnvParams, env: Environment) -> Callable:
+def _step(env_params: TEnvParams, env: Environment) -> Callable:
     def inner_step(carry, _) -> Tuple[Tuple, Trajectory]:
         _k, _env_state, _obs, _agents = carry
         _k, _k_act, _k_step = jax.random.split(_k, 3)
         _actions, _action_values = tree_utils.sample_actions(_k_act, _agents, _obs)
-        _new_obs, _env_state, _rewards, _done, _ = env.step(
-            _k_step, _env_state, _actions, env_params
+        _new_obs, _env_state, _rewards, _done = env.step(
+            _k_step, env_params, _env_state, _actions
         )
         trajectories = jax.tree.map(
             lambda *x: Trajectory(
@@ -51,7 +51,7 @@ def train(
     key: chex.PRNGKey,
     agents: TypedPyTree[Agent],
     env: Environment,
-    env_params: EnvParams,
+    env_params: TEnvParams,
     n_epochs: int,
     n_env: int,
     n_env_steps: int,
@@ -138,7 +138,7 @@ def test(
     key: chex.PRNGKey,
     agents: TypedPyTree[Agent],
     env: Environment,
-    env_params: EnvParams,
+    env_params: TEnvParams,
     n_env: int,
     n_env_steps: int,
     show_progress: bool = True,

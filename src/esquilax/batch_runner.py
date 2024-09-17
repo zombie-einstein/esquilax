@@ -7,7 +7,7 @@ from typing import Optional, Union
 import chex
 import jax
 
-from .env import Sim, TSimParams
+from .sim import Sim, TSimParams
 
 
 def batch_sim_runner(

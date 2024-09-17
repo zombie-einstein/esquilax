@@ -20,7 +20,6 @@ example, but wrap them up in an environment class
    import jax
    import jax.numpy as jnp
    import optax
-   from gymnax.environments.environment import Environment
    import esquilax
    from esquilax import ml
 
@@ -132,7 +131,7 @@ example, but wrap them up in an environment class
 
 .. testcode:: rl_boids
 
-   class BoidEnv(Environment):
+   class BoidEnv(esquilax.ml.rl.Environment):
        def __init__(self, n_agents: int):
            self.n_agents = n_agents
 

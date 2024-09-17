@@ -4,14 +4,13 @@ import chex
 import jax
 import jax.numpy as jnp
 import optax
-from gymnax.environments.environment import Environment
 
 from esquilax import ml
 
 from . import updates
 
 
-class BoidEnv(Environment):
+class BoidEnv(ml.rl.Environment):
     def __init__(self, n_agents: int):
         self.n_agents = n_agents
 
@@ -42,16 +41,16 @@ class BoidEnv(Environment):
     def step(
         self,
         key: chex.PRNGKey,
+        params: updates.Params,
         state: updates.Boid,
         actions: chex.Array,
-        params: updates.Params,
     ) -> Tuple[chex.Array, updates.Boid, chex.Array, chex.Array, Dict[Any, Any]]:
         headings, speeds = updates.update_velocity(key, params, (actions, state))
         pos = updates.move(key, params, (state.pos, headings, speeds))
         rewards = updates.rewards(key, params, pos, pos, pos=pos)
         boids = updates.Boid(pos=pos, heading=headings, speed=speeds)
         obs = self.get_obs(boids, params=params, key=key)
-        return obs, state, rewards, False, None
+        return obs, state, rewards, False
 
     def get_obs(
         self,

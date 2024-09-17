@@ -1,7 +1,6 @@
 import jax
 import jax.numpy as jnp
 import optax
-from gymnax.environments.environment import Environment
 
 from esquilax.ml import rl
 
@@ -56,17 +55,17 @@ def test_training_shared_policy():
 
     agent = Agent.init(k, SimpleModel(), optax.adam(1e-4), observation_shape)
 
-    class TestEnv(Environment):
-        def step_env(
+    class TestEnv(rl.Environment):
+        def step(
             self,
             key,
+            params,
             state,
             action,
-            params,
         ):
-            return jnp.ones((4,)), 10, 0, False, None
+            return jnp.ones((4,)), 10, 0, False
 
-        def reset_env(self, key, params):
+        def reset(self, key, params):
             return jnp.ones((4,)), 10
 
         def get_obs(self, state, params):
@@ -121,7 +120,7 @@ def test_training_multi_policy():
         b=Agent.init(k, SimpleModel(), optax.adam(1e-4), observation_shape),
     )
 
-    class TestEnv(Environment):
+    class TestEnv(rl.Environment):
         def reset(self, key, params):
             return (
                 dict(a=jnp.ones((4,)), b=jnp.ones((4,))),
@@ -131,16 +130,15 @@ def test_training_multi_policy():
         def step(
             self,
             key,
+            params,
             state,
             action,
-            params,
         ):
             return (
                 dict(a=jnp.ones((4,)), b=jnp.ones((4,))),
                 10,
                 dict(a=0, b=0),
                 dict(a=False, b=False),
-                None,
             )
 
     env = TestEnv()

@@ -34,7 +34,6 @@ chex = "^0.1.86"
 jax-tqdm = "^0.2.1"
 evosax = "^0.1.6"
 flax = "^0.8.5"
-gymnax = "^0.0.8"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.7.1"

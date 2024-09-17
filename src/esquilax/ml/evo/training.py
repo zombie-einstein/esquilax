@@ -17,8 +17,8 @@ import jax.numpy as jnp
 import jax_tqdm
 
 from esquilax.batch_runner import batch_sim_runner
-from esquilax.env import Sim, TSimParams
 from esquilax.ml.common import TypedPyTree
+from esquilax.sim import Sim, TSimParams
 
 from . import tree_utils
 from .strategy import Strategy
