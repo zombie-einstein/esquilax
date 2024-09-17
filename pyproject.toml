@@ -34,15 +34,14 @@ chex = "^0.1.86"
 jax-tqdm = "^0.2.1"
 evosax = "^0.1.6"
 flax = "^0.8.5"
-gymnax = "^0.0.8"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.7.1"
 taskipy = "^1.13.0"
 pytest = "^8.2.2"
-sphinx = "^7.4.7"
+sphinx = "^8.0.2"
 piccolo-theme = "^0.23.0"
-sphinx-autoapi = "^3.2.1"
+sphinx-autoapi = "^3.3.1"
 
 [build-system]
 requires = ["poetry-core"]

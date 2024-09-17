@@ -19,8 +19,9 @@ class Agent(TrainState):
     Outlines functionality required for agents to used
     as part of esquilax rl training functionality.
 
-    This class extends the flax Trainstate, containing
-    a network function and parameters, along with an
+    This class extends
+    :py:class:`flax.training.train_state.TrainState`,
+    containing a network function and parameters, along with an
     optimiser and corresponding state.
 
     An ``Agent`` can represent multiple agents, dependent
@@ -28,16 +29,16 @@ class Agent(TrainState):
     """
 
     def sample_actions(
-        self, k: chex.PRNGKey, observations: chex.Array
+        self, key: chex.PRNGKey, observations: chex.Array
     ) -> Tuple[chex.ArrayTree, chex.ArrayTree]:
         """
         Sample actions given observations
 
         Parameters
         ----------
-        k: jax.random.PRNGKey
+        key
             JAX random key.
-        observations: chex.Array
+        observations
             Environment observations
 
         Returns
@@ -48,20 +49,20 @@ class Agent(TrainState):
         """
         raise NotImplementedError
 
-    def update(self, k: chex.PRNGKey, trajectories) -> Tuple[Self, chex.ArrayTree]:
+    def update(self, key: chex.PRNGKey, trajectories) -> Tuple[Self, chex.ArrayTree]:
         """
         Update the state of the agent from observed trajectories
 
         Parameters
         ----------
-        k: jax.random.PRNGKey
+        key
             JAX random key.
-        trajectories: Trajectory
+        trajectories
             Structure of observation-action environment update trajectories.
 
         Returns
         -------
-        tuple
+        tuple[esquilax.ml.rl.Agent, chex.ArrayTree]
             Tuple containing an updated ``Agent`` and any associated data
             e.g. training losses from the update.
         """
@@ -73,14 +74,14 @@ class Agent(TrainState):
 
         Parameters
         ----------
-        grads: chex.ArrayTree
+        grads
             Gradients corresponding to the agent parameters.
-        kwargs
+        **kwargs
             Any keyword arguments to pass to underlying ``apply_gradients`` function.
 
         Returns
         -------
-        Agent
+        esquilax.ml.rl.Agent
             Updated agent
         """
         raise NotImplementedError
@@ -94,7 +95,7 @@ class SharedPolicyAgent(Agent):
     @classmethod
     def init(
         cls,
-        k: chex.PRNGKey,
+        key: chex.PRNGKey,
         model: nn.Module,
         tx: optax.GradientTransformation,
         observation_shape: Tuple[int, ...],
@@ -104,25 +105,40 @@ class SharedPolicyAgent(Agent):
 
         Parameters
         ----------
-        k: jax.random.PRNGKey
+        key
             JAX random key.
-        model: flax.linen.Module
+        model
             Flax neural network model definition.
-        tx: optax.GradientTransformation
+        tx
             Optax optimiser.
-        observation_shape: tuple[int]
+        observation_shape
             Shape of observations
 
         Returns
         -------
-        SharedPolicyAgent
+        esquilax.ml.rl.SharedPolicyAgent
             Initialised agent.
         """
         fake_args = jnp.zeros(observation_shape)
-        params = model.init(k, fake_args)
+        params = model.init(key, fake_args)
         return cls.create(apply_fn=model.apply, params=params, tx=tx)
 
     def apply_grads(self, *, grads, **kwargs) -> Self:
+        """
+        Apply gradients to the agent parameters and optimiser
+
+        Parameters
+        ----------
+        grads
+            Gradients corresponding to the agent parameters.
+        **kwargs
+            Any keyword arguments to pass to underlying ``apply_gradients`` function.
+
+        Returns
+        -------
+        esquilax.ml.rl.SharedPolicyAgent
+            Updated agent
+        """
         return self.apply_gradients(grads=grads, **kwargs)
 
 
@@ -138,7 +154,7 @@ class BatchPolicyAgent(Agent):
     @classmethod
     def init(
         cls,
-        k: chex.PRNGKey,
+        key: chex.PRNGKey,
         model: nn.Module,
         tx: optax.GradientTransformation,
         observation_shape: Tuple[int, ...],
@@ -152,20 +168,20 @@ class BatchPolicyAgent(Agent):
 
         Parameters
         ----------
-        k: jax.random.PRNGKey
+        key
             JAX random key.
-        model: flax.linen.Module
+        model
             Flax neural network model definition.
-        tx: optax.GradientTransformation
+        tx
             Optax optimiser.
-        observation_shape: tuple[int]
+        observation_shape
             Shape of observations.
-        n_agents: int
+        n_agents
             Number of agents to initialise state for.
 
         Returns
         -------
-        BatchPolicyAgent
+        esquilax.ml.rl.BatchPolicyAgent
             Initialised agent.
         """
         fake_args = jnp.zeros(observation_shape)
@@ -174,7 +190,7 @@ class BatchPolicyAgent(Agent):
             params = model.init(_k, fake_args)
             return cls.create(apply_fn=model.apply, params=params, tx=tx)
 
-        keys = jax.random.split(k, n_agents)
+        keys = jax.random.split(key, n_agents)
         return jax.vmap(init)(keys)
 
     def apply_grads(self, *, grads, **kwargs) -> Self:
@@ -186,16 +202,16 @@ class BatchPolicyAgent(Agent):
 
         Parameters
         ----------
-        grads: chex.ArrayTree
+        grads
             Gradients corresponding to the agent parameters. Each agent
             should receive its own set of gradients, i.e. gradients
             should have a shape ``[n-agents, n-parameters, ...]``.
-        kwargs
+        **kwargs
             Any keyword arguments to pass to underlying ``apply_gradients`` function.
 
         Returns
         -------
-        Agent
+        esquilax.ml.rl.BatchPolicyAgent
             Updated agent
         """
         return jax.vmap(lambda a, g: a.apply_gradients(grads=g, **kwargs))(self, grads)

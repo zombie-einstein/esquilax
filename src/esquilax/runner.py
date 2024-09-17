@@ -48,25 +48,25 @@ def sim_runner(
         - ``new_state``: Updated simulation state
         - ``records``: State data to be recorded
 
-    params: Any
+    params
         Simulation parameters. Parameters are constant over the
         course of the simulation.
-    initial_state: Any
+    initial_state
         Initial simulation state.
-    n_steps: int
+    n_steps
         Number of steps to run.
-    rng: int or jax.random.PRNGKey
+    rng
         Either an integer random seed, or a JAX PRNGKey.
-    show_progress: bool
+    show_progress
         If ``True`` a progress bar will be shown.
-    **static_kwargs:
+    **static_kwargs
         Any keyword static values passed to the step function.
         These should be used for any values or functionality required
         to be known at compile time by JAX.
 
     Returns
     -------
-    [Any, Any, jax.PRNGKey]
+    [Any, Any, chex.PRNGKey]
         Tuple containing
 
         - The final state of the simulation

@@ -7,7 +7,7 @@ from typing import Optional, Union
 import chex
 import jax
 
-from .env import Sim, TSimParams
+from .sim import Sim, TSimParams
 
 
 def batch_sim_runner(
@@ -30,21 +30,21 @@ def batch_sim_runner(
 
     Parameters
     ----------
-    sim: Sim
+    sim
         Simulation functionality class.
-    n_steps: int
+    n_steps
         Number of simulation steps.
-    n_samples: int
+    n_samples
         Number of Monte-Carlo samples.
-    rng: int or jax.random.PRNGKey
+    rng
         Either a JAX random key or integer random seed.
-    show_progress: bool, optional
+    show_progress
         If ``True`` simulation progress bar will be displayed.
         Default ``True``.
-    params: TSimParams, optional
+    params
         Optional simulation parameters. If not provided default
         simulation parameters will be used.
-    param_samples: TSimParams, optional
+    param_samples
         Optional simulation parameter samples to generate
         data across. Should have the same tree structure as individual
         simulation parameters.

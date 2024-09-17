@@ -1,14 +1,13 @@
-from typing import Collection, Optional, Tuple, Type, TypeVar
+from typing import Any, Optional, Tuple, Type
 
 import chex
 import jax
 
-T = TypeVar("T")
-TypedPyTree = T | Collection[T]
+from esquilax.typing import TypedPyTree
 
 
 def key_tree_split(
-    key: chex.PRNGKey, tree: TypedPyTree, typ: Optional[Type] = None
+    key: chex.PRNGKey, tree: TypedPyTree[Any], typ: Optional[Type] = None
 ) -> TypedPyTree[chex.PRNGKey]:
     """
     Generate random keys for PyTree leaves
@@ -20,18 +19,19 @@ def key_tree_split(
 
     Parameters
     ----------
-    key: jax.random.PRNGKey
+    key
         JAX random key.
-    tree: TypedPyTree
+    tree
         Pytree to map over.
-    typ: type, optional
+    typ
         If provided, leaves of the tree
         will be those that match the provided type.
 
     Returns
     -------
-    TypedPyTree[jax.random.PRNGKey]
-
+    esquilax.typing.TypedPyTree[chex.PRNGKey]
+        PyTree with random keys as leaves and the
+        same structure as the argument tree
     """
     if typ is None:
         is_leaf = None
@@ -40,14 +40,14 @@ def key_tree_split(
         def is_leaf(x):
             return isinstance(x, typ)
 
-    treedef = jax.tree.structure(tree, is_leaf=is_leaf)
-    keys = jax.random.split(key, treedef.num_leaves)
-    keys = jax.tree.unflatten(treedef, keys)
+    tree_def = jax.tree.structure(tree, is_leaf=is_leaf)
+    keys = jax.random.split(key, tree_def.num_leaves)
+    keys = jax.tree.unflatten(tree_def, keys)
     return keys
 
 
 def transpose_tree_of_tuples(
-    tree_a: TypedPyTree, tree_b, n: int, typ: Optional[Type] = None
+    tree_a: TypedPyTree[Any], tree_b, n: int, typ: Optional[Type] = None
 ) -> Tuple:
     """
     Transpose a tree containing tuples, into a tuple of the outer tree
@@ -58,9 +58,9 @@ def transpose_tree_of_tuples(
         Tree to take outer structure from.
     tree_b
         Tree to transpose
-    n: int
+    n
         Number of values to unpack
-    typ: type, optional
+    typ
         Optional type to use as leaf check in ``tree_a``.
     Returns
     -------

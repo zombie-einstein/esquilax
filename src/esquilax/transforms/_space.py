@@ -105,31 +105,31 @@ def spatial(
 
     Parameters
     ----------
-    n_bins: int
+    n_bins
         Number of bins each dimension is subdivided
         into. Assumes that each dimension contains the
         same number of cells. Each cell can only interact
         with adjacent cells, so this value also consequently
         also controls the number of interactions.
-    reduction: Callable
+    reduction
         Binary monoidal reduction function, eg ``jax.numpy.add``.
-    default: Any
+    default
         Default/identity reduction value
-    include_self: bool, optional
+    include_self
         if ``True`` each agent will include itself in the
         gathered values.
-    topology: str, optional
+    topology
         Topology of cells, default ``"moore"``. Since cells
         interact with their neighbours, topologies with
         fewer neighbours can increase performance at the
         cost of fidelity. Should be one of ``"same-cell"``,
         ``"von-neumann"`` or ``"moore"``.
-    i_range: float, optional
+    i_range
         Optional interaction range. By default, the width
         of a cell is used as the interaction range, but this
         can be increased/decreased using ``i_range`` dependent
         on the use-case.
-    f: Callable
+    f
         Interaction to apply to in-proximity pairs, should
         have the signature
 

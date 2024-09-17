@@ -1,10 +1,10 @@
 import jax
 import jax.numpy as jnp
 import optax
-from flax import linen as nn
-from gymnax.environments.environment import Environment
 
 from esquilax.ml import rl
+
+from .conftest import SimpleModel
 
 
 def test_batch_agent():
@@ -13,14 +13,8 @@ def test_batch_agent():
 
     k = jax.random.key(451)
 
-    class Model(nn.module.Module):
-        @nn.compact
-        def __call__(self, x):
-            x = nn.Dense(features=2)(x)
-            return jnp.sum(x)
-
     agents = rl.BatchPolicyAgent.init(
-        k, Model(), optax.adam(1e-4), observation_shape, n_agents
+        k, SimpleModel(), optax.adam(1e-4), observation_shape, n_agents
     )
 
     assert agents.step.shape == (n_agents,)
@@ -55,30 +49,23 @@ class Agent(rl.SharedPolicyAgent):
         return self, (10, 10)
 
 
-class Model(nn.module.Module):
-    @nn.compact
-    def __call__(self, x):
-        x = nn.Dense(features=2)(x)
-        return jnp.sum(x)
-
-
 def test_training_shared_policy():
     k = jax.random.key(451)
     observation_shape = (4,)
 
-    agent = Agent.init(k, Model(), optax.adam(1e-4), observation_shape)
+    agent = Agent.init(k, SimpleModel(), optax.adam(1e-4), observation_shape)
 
-    class TestEnv(Environment):
-        def step_env(
+    class TestEnv(rl.Environment):
+        def step(
             self,
             key,
+            params,
             state,
             action,
-            params,
         ):
-            return jnp.ones((4,)), 10, 0, False, None
+            return jnp.ones((4,)), 10, 0, False
 
-        def reset_env(self, key, params):
+        def reset(self, key, params):
             return jnp.ones((4,)), 10
 
         def get_obs(self, state, params):
@@ -129,11 +116,11 @@ def test_training_multi_policy():
     observation_shape = (4,)
 
     agents = dict(
-        a=Agent.init(k, Model(), optax.adam(1e-4), observation_shape),
-        b=Agent.init(k, Model(), optax.adam(1e-4), observation_shape),
+        a=Agent.init(k, SimpleModel(), optax.adam(1e-4), observation_shape),
+        b=Agent.init(k, SimpleModel(), optax.adam(1e-4), observation_shape),
     )
 
-    class TestEnv(Environment):
+    class TestEnv(rl.Environment):
         def reset(self, key, params):
             return (
                 dict(a=jnp.ones((4,)), b=jnp.ones((4,))),
@@ -143,16 +130,15 @@ def test_training_multi_policy():
         def step(
             self,
             key,
+            params,
             state,
             action,
-            params,
         ):
             return (
                 dict(a=jnp.ones((4,)), b=jnp.ones((4,))),
                 10,
                 dict(a=0, b=0),
                 dict(a=False, b=False),
-                None,
             )
 
     env = TestEnv()

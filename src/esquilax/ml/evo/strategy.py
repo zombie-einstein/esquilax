@@ -29,14 +29,14 @@ class Strategy:
     """
 
     def initialize(
-        self, k: chex.PRNGKey, evo_params: evosax.EvoParams
+        self, key: chex.PRNGKey, evo_params: evosax.EvoParams
     ) -> evosax.EvoState:
         """
         Initialise strategy state
 
         Parameters
         ----------
-        k: jax.random.PRNGKey
+        key
             JAX random key
         evo_params: evosax.EvoParams
             Strategy parameters
@@ -94,7 +94,7 @@ class Strategy:
         ----------
         population
             Strategy population
-        fitness: jax.numpy.array
+        fitness
             Fitness/rewards
 
         Returns
@@ -106,18 +106,21 @@ class Strategy:
 
     @partial(jax.jit, static_argnums=(0,))
     def ask(
-        self, k: chex.PRNGKey, evo_state: evosax.EvoState, evo_params: evosax.EvoParams
+        self,
+        key: chex.PRNGKey,
+        evo_state: evosax.EvoState,
+        evo_params: evosax.EvoParams,
     ) -> Tuple[chex.ArrayTree, evosax.EvoState]:
         """
         Sample parameters from the current strategy state
 
         Parameters
         ----------
-        k: jax.random.PRNGKey
+        key
             JAX random key
-        evo_state: evosax.EvoState
+        evo_state
             Strategy state
-        evo_params: evosax.EvoParams
+        evo_params
             Strategy parameters
 
         Returns
@@ -140,13 +143,13 @@ class Strategy:
 
         Parameters
         ----------
-        population: chex.ArrayTree
+        population
             Population array
-        fitness: chex.ArrayTree
+        fitness
             Fitness array
-        evo_state: evosax.EvoState
+        evo_state
             Strategy state
-        evo_params: evosax.EvoParams
+        evo_params
             Strategy params
 
         Returns
@@ -165,10 +168,14 @@ class BasicStrategy(Strategy):
     initialised from a Flax neural-network.
     """
 
+    param_reshaper: evosax.ParameterReshaper
+    strategy: evosax.Strategy
+    fitness_shaper: evosax.FitnessShaper
+
     def __init__(
         self,
         network_params: Union[FrozenVariableDict, Dict[str, Any]],
-        strategy,
+        strategy: evosax.Strategy,
         pop_size: int,
         centered_rank_fitness: bool = True,
         z_score_fitness: bool = False,
@@ -178,17 +185,17 @@ class BasicStrategy(Strategy):
         """
         Parameters
         ----------
-        network_params: Union[FrozenVariableDict, Dict[str, Any]]
+        network_params
             Flax network parameters.
         strategy
             Evosax strategy class.
-        pop_size: int
+        pop_size
             Strategy population size.
-        centered_rank_fitness: bool, optional
+        centered_rank_fitness
             Use ``centered_rank_fitness`` for fitness-shaping, default ``True``.
-        z_score_fitness: bool, optional
+        z_score_fitness
             Use ``z_score_fitness`` for fitness-shaping, default ``False``.
-        maximize_fitness: bool, optional
+        maximize_fitness
             Use ``maximize_fitness`` for fitness-shaping, default ``True``.
 
             .. warning::
@@ -198,15 +205,6 @@ class BasicStrategy(Strategy):
 
         **strategy_kwargs
             Keyword arguments to pass to the strategy constructor.
-
-        Attributes
-        ----------
-        param_reshaper: evosax.ParameterReshaper
-            Parameter reshaper function
-        strategy
-            Initialised strategy
-        fitness_shaper: evosax.FitnessShaper
-            Fitness rescaler
         """
         self.param_reshaper = evosax.ParameterReshaper(network_params)
         self.strategy = strategy(
@@ -221,16 +219,16 @@ class BasicStrategy(Strategy):
         )
 
     def initialize(
-        self, k: chex.PRNGKey, evo_params: evosax.EvoParams
+        self, key: chex.PRNGKey, evo_params: evosax.EvoParams
     ) -> evosax.EvoState:
         """
         Initialise strategy state
 
         Parameters
         ----------
-        k: jax.random.PRNGKey
+        key
             JAX random key
-        evo_params: evosax.EvoParams
+        evo_params
             Strategy parameters
 
         Returns
@@ -238,7 +236,7 @@ class BasicStrategy(Strategy):
         evosax.EvoState
             Strategy state
         """
-        return self.strategy.initialize(k, evo_params)
+        return self.strategy.initialize(key, evo_params)
 
     @partial(jax.jit, static_argnums=(0,))
     def default_params(self) -> evosax.EvoParams:
@@ -258,7 +256,7 @@ class BasicStrategy(Strategy):
 
         Parameters
         ----------
-        population: jax.numpy.array
+        population
             Array of parameters sampled from the strategy.
 
         Returns
@@ -269,18 +267,21 @@ class BasicStrategy(Strategy):
         return self.param_reshaper.reshape(population)
 
     def ask(
-        self, k: chex.PRNGKey, evo_state: evosax.EvoState, evo_params: evosax.EvoParams
+        self,
+        key: chex.PRNGKey,
+        evo_state: evosax.EvoState,
+        evo_params: evosax.EvoParams,
     ) -> Tuple[chex.ArrayTree, evosax.EvoState]:
         """
         Sample parameters from the current strategy state
 
         Parameters
         ----------
-        k: jax.random.PRNGKey
+        key
             JAX random key
-        evo_state: evosax.EvoState
+        evo_state
             Strategy state
-        evo_params: evosax.EvoParams
+        evo_params
             Strategy parameters
 
         Returns
@@ -288,7 +289,7 @@ class BasicStrategy(Strategy):
         tuple[jax.numpy.array, evosax.EvoState]
             Population array and updated state of the strategy
         """
-        return self.strategy.ask_strategy(k, evo_state, evo_params)
+        return self.strategy.ask_strategy(key, evo_state, evo_params)
 
     def shape_rewards(self, population, fitness: chex.ArrayTree) -> chex.ArrayTree:
         """
@@ -300,7 +301,7 @@ class BasicStrategy(Strategy):
         ----------
         population
             Strategy population or collection of populations
-        fitness: jax.numpy.array
+        fitness
             Fitness/rewards (or collection of)
 
         Returns
@@ -322,13 +323,13 @@ class BasicStrategy(Strategy):
 
         Parameters
         ----------
-        population: chex.ArrayTree
+        population
             Population array
-        fitness: chex.ArrayTree
+        fitness
             Fitness array
-        evo_state: evosax.EvoState
+        evo_state
             Strategy state
-        evo_params: evosax.EvoParams
+        evo_params
             Strategy params
 
         Returns

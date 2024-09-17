@@ -8,22 +8,22 @@ import chex
 import jax
 import jax.numpy as jnp
 import jax_tqdm
-from gymnax.environments.environment import Environment, EnvParams
 
-from esquilax.ml.common import TypedPyTree
+from esquilax.typing import TEnvParams, TypedPyTree
 
 from . import tree_utils
 from .agents import Agent
+from .environment import Environment
 from .types import Trajectory
 
 
-def _step(env_params: EnvParams, env: Environment) -> Callable:
+def _step(env_params: TEnvParams, env: Environment) -> Callable:
     def inner_step(carry, _) -> Tuple[Tuple, Trajectory]:
         _k, _env_state, _obs, _agents = carry
         _k, _k_act, _k_step = jax.random.split(_k, 3)
         _actions, _action_values = tree_utils.sample_actions(_k_act, _agents, _obs)
-        _new_obs, _env_state, _rewards, _done, _ = env.step(
-            _k_step, _env_state, _actions, env_params
+        _new_obs, _env_state, _rewards, _done = env.step(
+            _k_step, env_params, _env_state, _actions
         )
         trajectories = jax.tree.map(
             lambda *x: Trajectory(
@@ -51,37 +51,38 @@ def train(
     key: chex.PRNGKey,
     agents: TypedPyTree[Agent],
     env: Environment,
-    env_params: EnvParams,
+    env_params: TEnvParams,
     n_epochs: int,
     n_env: int,
     n_env_steps: int,
     show_progress: bool = True,
-):
+) -> Tuple[TypedPyTree[Agent], chex.ArrayTree, chex.ArrayTree]:
     """
     Train an RL-agent or agents with a given environment
 
     Parameters
     ----------
-    key: jax.random.PRNGKey
+    key
         JAX random key.
-    agents: TypedPyTree[Agent]
+    agents
         RL agent, or collection of agents. Multiple
         agents/policies can be provided to allow for
         training of multiple agent types.
-    env: Environment
+    env
         Training environment/simulation. This should
-        implement a Gymnax Environment base class.
-    env_params: EnvParams
+        implement the :py:class:`esquilax.ml.rl.Environment`
+        interface.
+    env_params
         Environment parameters.
-    n_epochs: int
+    n_epochs
         Number of training epochs.
-    n_env:
+    n_env
         Number of environments to train across per epoch.
-    n_env_steps:
+    n_env_steps
         Number of steps to run in each environment per epoch.
-    show_progress: bool, optional
+    show_progress
         If ``True`` a training progress bar will be displayed.
-        Default ``True``
+        Default ``True``.
 
     Returns
     -------
@@ -138,42 +139,41 @@ def test(
     key: chex.PRNGKey,
     agents: TypedPyTree[Agent],
     env: Environment,
-    env_params: EnvParams,
+    env_params: TEnvParams,
     n_env: int,
     n_env_steps: int,
     show_progress: bool = True,
-):
+) -> Trajectory:
     """
     Test agent(s) performance
 
-    Test agents against a test environment,
-    returning trajectory data gathered
-    over training.
+    Asses agents against a test environment,
+    returning trajectory data gathered over training.
 
     Parameters
     ----------
-    key: jax.random.PRNGKey
+    key
         JAX random key.
-    agents: TypedPyTree[Agent]
+    agents
         RL agent, or collection of agents. Multiple
         agents/policies can be provided to allow for
         testing of multiple agent types.
-    env: Environment
+    env
         Training environment/simulation. This should
         implement a Gymnax Environment base class.
-    env_params: EnvParams
+    env_params
         Environment parameters.
-    n_env:
+    n_env
         Number of environments to test across.
-    n_env_steps:
+    n_env_steps
         Number of steps to run in each environment.
-    show_progress: bool, optional
+    show_progress
         If ``True`` a testing progress bar will be displayed.
         Default ``True``
 
     Returns
     -------
-    Trajectory
+    esquilax.ml.rl.Trajectory
         Update trajectories gathered over testing.
     """
     step = _step(env_params, env)

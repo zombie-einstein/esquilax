@@ -9,7 +9,7 @@ import jax
 import jax.numpy as jnp
 
 
-def get_bins(x: chex.Array, n: int, w: float) -> chex.Array:
+def get_bins(x: chex.Array, n_cells: int, width: float) -> chex.Array:
     """
     Assign co-ordinates to a grid-cell
 
@@ -21,20 +21,20 @@ def get_bins(x: chex.Array, n: int, w: float) -> chex.Array:
 
     Parameters
     ----------
-    x: jax.ndarray
+    x
         2d array of co-ordinates, in shape ``[n, 2]``.
-    n: int
+    n_cells
         Number of cells along dimensions.
-    w: float
-        Width of cells.
+    width
+        Width of space.
 
     Returns
     -------
-    jax.ndarray
+    jax.numpy.ndarray
         Array of cell indices for each position
     """
-    y = jnp.floor_divide(x, w).astype(jnp.int32)
-    i = y[:, 0] * n + y[:, 1]
+    y = jnp.floor_divide(x, width).astype(jnp.int32)
+    i = y[:, 0] * n_cells + y[:, 1]
     return i
 
 
@@ -53,9 +53,9 @@ def get_cell_neighbours(n_bins: int, topology: str) -> chex.Array:
 
     Parameters
     ----------
-    n_bins: int
+    n_bins
         Number of bins
-    topology: str
+    topology
         Topology of the neighbouring cells, one of:
 
         - ``same-cell``: Only consider cells in isolation
@@ -66,7 +66,7 @@ def get_cell_neighbours(n_bins: int, topology: str) -> chex.Array:
 
     Returns
     -------
-    jax.ndarray
+    jax.numpy.ndarray
         2d array where each row contains a cells index
         and indices of its neighbours.
     """
@@ -104,16 +104,16 @@ def shortest_vector(a: chex.Array, b: chex.Array, length: float = 1.0) -> chex.A
 
     Parameters
     ----------
-    a: jax.ndarray
+    a
         Co-ordinate vector.
-    b: jax.ndarray
+    b
         Co-ordinate vector.
-    length: float, optional
+    length
         Length of the space. Default ``1.0``.
 
     Returns
     -------
-    jax.ndarray
+    jax.numpy.ndarray
         Array representing the shortest vector between the points.
     """
     x = b - a
@@ -132,13 +132,13 @@ def shortest_distance(
 
     Parameters
     ----------
-    a: jax.ndarray
+    a
         Co-ordinate vector
-    b: jax.ndarray
+    b
         Co-ordinate vector
-    length: float, optional
+    length
         Length of the space. Default is ``1.0``.
-    norm: bool, optional
+    norm
         If ``True`` the distance will be normalised
         otherwise the square of the distance will be
         returned. Default ``True``.
