@@ -20,11 +20,11 @@ def key_tree_split(
 
     Parameters
     ----------
-    key: jax.random.PRNGKey
+    key
         JAX random key.
-    tree: TypedPyTree
+    tree
         Pytree to map over.
-    typ: type, optional
+    typ
         If provided, leaves of the tree
         will be those that match the provided type.
 
@@ -58,9 +58,9 @@ def transpose_tree_of_tuples(
         Tree to take outer structure from.
     tree_b
         Tree to transpose
-    n: int
+    n
         Number of values to unpack
-    typ: type, optional
+    typ
         Optional type to use as leaf check in ``tree_a``.
     Returns
     -------

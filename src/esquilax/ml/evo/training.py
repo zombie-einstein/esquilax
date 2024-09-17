@@ -44,7 +44,7 @@ def train(
     n_env: int,
     n_steps: int,
     map_population: bool,
-    k: chex.PRNGKey,
+    key: chex.PRNGKey,
     evo_params: TypedPyTree[evosax.EvoParams],
     evo_states: TypedPyTree[evosax.EvoState],
     show_progress: bool = True,
@@ -81,10 +81,10 @@ def train(
 
     Parameters
     ----------
-    strategies: esquilax.ml.evo.Strategy
+    strategies
         PyTree of Strategy classes. This could be either a
         single Strategy, or a container/struct of strategies.
-    env: esquilax.env.SimEnv
+    env
         Esquilax simulation training environment
 
         .. warning::
@@ -127,30 +127,30 @@ def train(
                       )
                   )
 
-    n_generations: int
+    n_generations
         Number of training generations
-    n_env: int
+    n_env
         Number of Monte-Carlo samples to test each population
         or parameter samples across.
-    n_steps: int
+    n_steps
         Number of steps to run each simulation
-    map_population: bool
+    map_population
         If ``True`` each member of the population is
         evaluated in a separate environment (i.e. the
         individual parameters are shared by agents). If
         ``False`` the whole population is passed
         to the environment as part of the simulation
         state.
-    k: jax.random.PRNGKey
+    key
         JAX random key
-    evo_params: evosax.EvoParams
+    evo_params
         Evosax strategy parameters
-    evo_states: evosax.EvoState
+    evo_states
         Evosax strategy state
-    show_progress: bool, optional
+    show_progress
         If ``True`` a progress bar will be displayed
         showing training progress. Default value is ``True``.
-    env_params: TSimParams, optional
+    env_params
         Optional environment parameters, if not provided the
         default environment parameters will be used.
 
@@ -209,9 +209,9 @@ def train(
     if show_progress:
         generation = jax_tqdm.scan_tqdm(n_generations, desc="Generation")(generation)
 
-    (k, evo_states), rewards = jax.lax.scan(
+    (_, evo_states), rewards = jax.lax.scan(
         generation,
-        (k, evo_states),
+        (key, evo_states),
         jnp.arange(n_generations),
     )
 
@@ -234,10 +234,10 @@ def test(
     n_env: int,
     n_steps: int,
     map_population: bool,
-    k: chex.PRNGKey,
+    key: chex.PRNGKey,
     show_progress: bool = True,
     env_params: Optional[TSimParams] = None,
-) -> tuple[chex.ArrayTree, chex.ArrayTree]:
+) -> TrainingData:
     """
     Test population performance and gather telemetry
 
@@ -247,29 +247,29 @@ def test(
 
     Parameters
     ----------
-    population_shaped: chex.ArrayTree
+    population_shaped
         Reshaped population parameters for use
         by simulation agents.
-    env: esquilax.env.SimEnv
+    env
         Esquilax simulation training environment
-    n_env: int
+    n_env
         Number of Monte-Carlo samples to test each population
         or parameter samples across.
-    n_steps: int
+    n_steps
         Number of simulation steps.
-    map_population: bool
+    map_population
         If ``True`` each member of the population is
         evaluated in a separate environment (i.e. the
         individual parameters are shared by agents). If
         ``False`` the whole population is passed
         to the environment as part of the simulation
         state.
-    k: jax.random.PRNGKey
+    key
         JAX random key
-    show_progress: bool, optional
+    show_progress
         If ``True`` a progress bar will be displayed
         showing simulation progress. Default value is ``True``.
-    env_params: TSimParams, optional
+    env_params
         Optional environment parameters, if not provided the
         default environment parameters will be used.
 
@@ -278,7 +278,7 @@ def test(
     TrainingData
         Data collected over the course of the simulation.
     """
-    k1, k2 = jax.random.split(k)
+    k1, k2 = jax.random.split(key)
 
     env_params = env.default_params() if env_params is None else env_params
 
@@ -288,7 +288,7 @@ def test(
             n_env,
             n_steps,
             k2,
-            show_progress=False,
+            show_progress=show_progress,
             params=env_params,
             agent_params=_pop,
         )

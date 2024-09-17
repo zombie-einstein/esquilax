@@ -23,11 +23,11 @@ def sample_actions(
 
     Parameters
     ----------
-    key: jax.random.PRNGKey
+    key
         JAX random key.
-    agents: TypedPyTree[Agent]
+    agents
         Pytree of RL Agents.
-    observations: chex.ArrayTree
+    observations
         PyTree of observations, with tree structure corresponding
         to the agents.
 
@@ -60,11 +60,11 @@ def update_agents(
 
     Parameters
     ----------
-    key: jax.random.PRNGKey
+    key
         JAX random key.
-    agents: TypedPyTree[Agent]
+    agents
         PyTree of RL-agents.
-    trajectories: TypedPyTree[Trajectory]
+    trajectories
         PyTree of environment trajectories.
 
     Returns

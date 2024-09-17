@@ -28,16 +28,16 @@ class Agent(TrainState):
     """
 
     def sample_actions(
-        self, k: chex.PRNGKey, observations: chex.Array
+        self, key: chex.PRNGKey, observations: chex.Array
     ) -> Tuple[chex.ArrayTree, chex.ArrayTree]:
         """
         Sample actions given observations
 
         Parameters
         ----------
-        k: jax.random.PRNGKey
+        key
             JAX random key.
-        observations: chex.Array
+        observations
             Environment observations
 
         Returns
@@ -48,15 +48,15 @@ class Agent(TrainState):
         """
         raise NotImplementedError
 
-    def update(self, k: chex.PRNGKey, trajectories) -> Tuple[Self, chex.ArrayTree]:
+    def update(self, key: chex.PRNGKey, trajectories) -> Tuple[Self, chex.ArrayTree]:
         """
         Update the state of the agent from observed trajectories
 
         Parameters
         ----------
-        k: jax.random.PRNGKey
+        key
             JAX random key.
-        trajectories: Trajectory
+        trajectories
             Structure of observation-action environment update trajectories.
 
         Returns
@@ -73,9 +73,9 @@ class Agent(TrainState):
 
         Parameters
         ----------
-        grads: chex.ArrayTree
+        grads
             Gradients corresponding to the agent parameters.
-        kwargs
+        **kwargs
             Any keyword arguments to pass to underlying ``apply_gradients`` function.
 
         Returns
@@ -94,7 +94,7 @@ class SharedPolicyAgent(Agent):
     @classmethod
     def init(
         cls,
-        k: chex.PRNGKey,
+        key: chex.PRNGKey,
         model: nn.Module,
         tx: optax.GradientTransformation,
         observation_shape: Tuple[int, ...],
@@ -104,13 +104,13 @@ class SharedPolicyAgent(Agent):
 
         Parameters
         ----------
-        k: jax.random.PRNGKey
+        key
             JAX random key.
-        model: flax.linen.Module
+        model
             Flax neural network model definition.
-        tx: optax.GradientTransformation
+        tx
             Optax optimiser.
-        observation_shape: tuple[int]
+        observation_shape
             Shape of observations
 
         Returns
@@ -119,7 +119,7 @@ class SharedPolicyAgent(Agent):
             Initialised agent.
         """
         fake_args = jnp.zeros(observation_shape)
-        params = model.init(k, fake_args)
+        params = model.init(key, fake_args)
         return cls.create(apply_fn=model.apply, params=params, tx=tx)
 
     def apply_grads(self, *, grads, **kwargs) -> Self:
@@ -138,7 +138,7 @@ class BatchPolicyAgent(Agent):
     @classmethod
     def init(
         cls,
-        k: chex.PRNGKey,
+        key: chex.PRNGKey,
         model: nn.Module,
         tx: optax.GradientTransformation,
         observation_shape: Tuple[int, ...],
@@ -152,15 +152,15 @@ class BatchPolicyAgent(Agent):
 
         Parameters
         ----------
-        k: jax.random.PRNGKey
+        key
             JAX random key.
-        model: flax.linen.Module
+        model
             Flax neural network model definition.
-        tx: optax.GradientTransformation
+        tx
             Optax optimiser.
-        observation_shape: tuple[int]
+        observation_shape
             Shape of observations.
-        n_agents: int
+        n_agents
             Number of agents to initialise state for.
 
         Returns
@@ -174,7 +174,7 @@ class BatchPolicyAgent(Agent):
             params = model.init(_k, fake_args)
             return cls.create(apply_fn=model.apply, params=params, tx=tx)
 
-        keys = jax.random.split(k, n_agents)
+        keys = jax.random.split(key, n_agents)
         return jax.vmap(init)(keys)
 
     def apply_grads(self, *, grads, **kwargs) -> Self:
@@ -186,11 +186,11 @@ class BatchPolicyAgent(Agent):
 
         Parameters
         ----------
-        grads: chex.ArrayTree
+        grads
             Gradients corresponding to the agent parameters. Each agent
             should receive its own set of gradients, i.e. gradients
             should have a shape ``[n-agents, n-parameters, ...]``.
-        kwargs
+        **kwargs
             Any keyword arguments to pass to underlying ``apply_gradients`` function.
 
         Returns

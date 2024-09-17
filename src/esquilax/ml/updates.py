@@ -28,19 +28,19 @@ def get_actions(
 
     Parameters
     ----------
-    f: Callable
+    f
         Function parameterised by ``params`` (e.g.
         a neural-network apply function). Should
         have a signature :code:`(params, observation) -> x`.
-    broadcast: bool
+    broadcast
         If ``True`` the parameters will be shared across
         all the observations (i.e. a shared policy),
         otherwise they will be mapped over.
-    params: chex.ArrayTree
+    params
         Function parameters. Since shared
         by agents these should be a single sample
         of parameters.
-    observations: chex.ArrayTree
+    observations
         Array/tree of individual observation for agents
         to be mapped over.
 
@@ -57,7 +57,7 @@ def get_actions(
 def sample_actions(
     f: Callable,
     broadcast: bool,
-    k: chex.PRNGKey,
+    key: chex.PRNGKey,
     params: chex.ArrayTree,
     observations: chex.ArrayTree,
 ) -> chex.ArrayTree:
@@ -71,15 +71,15 @@ def sample_actions(
 
     Parameters
     ----------
-    f: Callable
+    f
         Function parameterised by ``params`` (e.g.
         a neural-network apply function). Should
         have a signature :code:`(key, params, observation) -> x`.
-    broadcast: bool
+    broadcast
         If ``True`` the parameters will be shared across
         all the observations (i.e. a shared policy),
         otherwise they will be mapped over.
-    k: jax.random.PRNGKey
+    key
         JAX random key.
     params: chex.ArrayTree
         Function parameters. Since shared
@@ -95,5 +95,5 @@ def sample_actions(
         Output of ``f`` for each agent.
     """
     in_axes = (0, None, 0) if broadcast else (0, 0, 0)
-    keys = jax.random.split(k, observations.shape[0])
+    keys = jax.random.split(key, observations.shape[0])
     return jax.vmap(f, in_axes=in_axes)(keys, params, observations)

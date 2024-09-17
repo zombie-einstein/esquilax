@@ -25,14 +25,14 @@ def tree_ask(
 
     Parameters
     ----------
-    key: jax.random.PRNGKey
+    key
         JAX random key
-    strategies: TypedPyTree[Strategy]
+    strategies
         PyTree of strategies, could be a single strategy
         or a container/struct of strategies.
-    evo_states: TypedPyTree[evosax.EvoState]
+    evo_states
         PyTree of strategy states
-    evo_params: TypedPyTree[evosax.EvoParams]
+    evo_params
         PyTree of strategy parameters
 
     Returns
@@ -84,16 +84,16 @@ def tree_tell(
 
     Parameters
     ----------
-    strategies: TypedPyTree[Strategy]
+    strategies
         PyTree of strategies, could be a single strategy
         or a container/struct of strategies.
-    populations: chex.ArrayTree
+    populations
         PyTree of populations.
-    rewards: chex.ArrayTree
+    rewards
         PyTree of rewards.
-    evo_states: TypedPyTree[evosax.EvoState]
+    evo_states
         PyTree of strategy states.
-    evo_params: TypedPyTree[evosax.EvoParams]
+    evo_params
         PyTree of strategy parameters.
 
     Returns

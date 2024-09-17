@@ -8,16 +8,16 @@ class Trajectory:
 
     Parameters
     ----------
-    obs: chex.ArrayTree
+    obs
         Agent observations
-    actions: chex.ArrayTree
+    actions
         Agent actions
-    action_values: chex.ArrayTree
+    action_values
         Any additional values associated with
         the action
-    rewards: chex.ArrayTree
+    rewards
         Agent rewards
-    done: chex.ArrayTree
+    done
         Terminal flag
     """
 

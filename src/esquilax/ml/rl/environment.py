@@ -43,9 +43,9 @@ class Environment(Generic[TEnvState, TEnvParams]):
 
         Parameters
         ----------
-        key: jax.random.PRNGKey
+        key
             JAX random key.
-        params: TEnvParams
+        params
             Environment parameters.
 
         Returns
@@ -74,11 +74,11 @@ class Environment(Generic[TEnvState, TEnvParams]):
 
         Parameters
         ----------
-        key: jax.random.PRNGKey
+        key
             JAX random key.
-        params: TEnvParams
+        params
             Environment parameters
-        state: TEnvState
+        state
             Current environment state
         actions
             Agent actions, for multiple agents this could be
