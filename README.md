@@ -15,8 +15,8 @@ agents, and to work alongside other JAX packages
 like [Flax](https://github.com/google/flax) and
 [Evosax](https://github.com/RobertTLange/evosax).
 
-Full documentation can be found
-[here](https://zombie-einstein.github.io/esquilax/)
+**Full documentation can be found
+[here](https://zombie-einstein.github.io/esquilax/)**
 
 ## Features
 
@@ -37,6 +37,12 @@ Full documentation can be found
 
   Esquilax is designed around functional patterns, ensuring models
   can be parallelised, but also aiding composition and readability
+
+- ***Built-in RL and Evolutionary Training***
+
+  Esquilax provides functionality to run multi-agent RL training
+  and multi-strategy neuro-evolution training, within Esquilax
+  simulations.
 
 ## Should I Use Esquilax?
 

@@ -43,9 +43,8 @@ napoleon_numpy_docstring = True
 napoleon_use_admonition_for_examples = False
 napoleon_use_admonition_for_notes = True
 napoleon_use_admonition_for_references = False
-# napoleon_use_rtype = False
+napoleon_use_rtype = True
 napoleon_preprocess_types = True
-# napoleon_use_param = True
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
