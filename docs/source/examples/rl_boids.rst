@@ -46,11 +46,6 @@ example, but wrap them up in an environment class
        def __call__(self, x):
            x = flax.linen.Dense(features=self.layer_width)(x)
            x = flax.linen.tanh(x)
-           x = flax.linen.Dense(features=self.layer_width)(x)
-           x = flax.linen.tanh(x)
-           x = flax.linen.Dense(features=self.actions)(x)
-           x = flax.linen.tanh(x)
-
            return x
 
    @esquilax.transforms.spatial(
@@ -163,18 +158,18 @@ example, but wrap them up in an environment class
        def step(
            self,
            key: chex.PRNGKey,
+           params: Params,
            state: Boid,
            actions: chex.Array,
-           params: Params,
-       ) -> Tuple[chex.Array, Boid, chex.Array, chex.Array, Any]:
+       ) -> Tuple[chex.Array, Boid, chex.Array, chex.Array]:
            headings, speeds = update_velocity(
                key, params, (actions, state)
            )
            pos = move(key, params, (state.pos, headings, speeds))
-           rewards = rewards(key, params, pos, pos, pos=pos)
+           rewards = reward(key, params, pos, pos, pos=pos)
            boids = Boid(pos=pos, heading=headings, speed=speeds)
            obs = self.get_obs(boids, params=params, key=key)
-           return obs, state, rewards, False, None
+           return obs, state, rewards, False
 
        def get_obs(
            self, state, params=None, key=None,
@@ -269,3 +264,11 @@ We can then run the training loop
 We initialise the environment and the RL agent from the
 neural network. We can then run the training loop using the
 built in :py:meth:`esquilax.ml.rl.train` function.
+
+.. doctest:: rl_boids
+   :hide:
+
+   >>> _ = rl_boids(
+   ...     Params(), 4, 2, 2, 5, layer_width=4, show_progress=False,
+   ... )
+   ...

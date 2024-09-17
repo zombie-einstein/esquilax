@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple
+from typing import Tuple
 
 import chex
 import jax
@@ -10,7 +10,7 @@ from esquilax import ml
 from . import updates
 
 
-class BoidEnv(ml.rl.Environment):
+class BoidEnv(ml.rl.Environment[updates.Params, updates.Boid]):
     def __init__(self, n_agents: int):
         self.n_agents = n_agents
 
@@ -44,7 +44,7 @@ class BoidEnv(ml.rl.Environment):
         params: updates.Params,
         state: updates.Boid,
         actions: chex.Array,
-    ) -> Tuple[chex.Array, updates.Boid, chex.Array, chex.Array, Dict[Any, Any]]:
+    ) -> Tuple[chex.Array, updates.Boid, chex.Array, chex.Array]:
         headings, speeds = updates.update_velocity(key, params, (actions, state))
         pos = updates.move(key, params, (state.pos, headings, speeds))
         rewards = updates.rewards(key, params, pos, pos, pos=pos)
