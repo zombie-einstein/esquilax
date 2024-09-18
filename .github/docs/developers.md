@@ -28,7 +28,7 @@ Tests can be run with
 task test
 ```
 
-### Docs
+### Documentation
 
 Docs can be built using Sphinx by running
 
@@ -36,4 +36,10 @@ Docs can be built using Sphinx by running
 task docs
 ```
 
-Build docs will be generated in the `docs/build` folder.
+Built docs will be generated in the `docs/build` folder.
+
+Likewise, documentation tests can be run with
+
+```bash
+task doc-tests
+```
