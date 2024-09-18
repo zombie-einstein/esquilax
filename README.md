@@ -1,5 +1,5 @@
 <div align="center">
-  <img src=".github/images/text_logo.png" />
+  <img src="https://github.com/zombie-einstein/esquilax/raw/main/.github/images/text_logo.png" />
 </div>
 
 \
@@ -59,7 +59,7 @@ As such you should probably *not* use Esquilax if:
 
 ## Getting Started
 
-Esquilax can be installed from pip
+Esquilax can be installed from pip using
 
 ``` bash
 pip install esquilax
@@ -72,7 +72,7 @@ installation instructions for JAX can be found
 ## Examples
 
 Example models and multi-agent policy training implemented using Esquilax
-can be found [here](/examples).
+can be found [here](https://github.com/zombie-einstein/esquilax/tree/main/examples).
 
 ## Contributing
 
@@ -83,5 +83,6 @@ Please report any issues or feature suggestions
 
 ### Developers
 
-Developer notes can be found [here](.github/docs/developers.md), Esquilax
-is under active development and contributions are very welcome!
+Developer notes can be found
+[here](https://github.com/zombie-einstein/esquilax/blob/main/.github/docs/developers.md),
+Esquilax is under active development and contributions are very welcome!
