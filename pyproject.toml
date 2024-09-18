@@ -8,6 +8,8 @@ authors = [
 readme = "README.md"
 packages = [{include = "esquilax", from = "src"}]
 repository = "https://github.com/zombie-einstein/esquilax"
+homepage = "https://zombie-einstein.github.io/esquilax"
+documentation = "https://zombie-einstein.github.io/esquilax"
 license = "MIT"
 keywords = [
   "agent-based modelling",
