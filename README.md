@@ -2,6 +2,7 @@
   <img src="https://github.com/zombie-einstein/esquilax/raw/main/.github/images/text_logo.png" />
   <br>
   <em>JAX Multi-Agent RL, A-Life, and Simulation Framework</em>
+  <br>
 </div>
 
 Esquilax is set of transformations and utilities
