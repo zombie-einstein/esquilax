@@ -1,9 +1,8 @@
 <div align="center">
   <img src="https://github.com/zombie-einstein/esquilax/raw/main/.github/images/text_logo.png" />
+  <br>
+  <em>JAX Multi-Agent RL, A-Life, and Simulation Framework</em>
 </div>
-
-\
-**JAX Multi-Agent RL, A-Life, and Simulation Framework**
 
 Esquilax is set of transformations and utilities
 intended to allow developers and researchers to
