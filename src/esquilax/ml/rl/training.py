@@ -9,7 +9,7 @@ import jax
 import jax.numpy as jnp
 import jax_tqdm
 
-from esquilax.typing import TEnvParams, TypedPyTree
+from esquilax.typing import TEnvParams, TEnvState, TypedPyTree
 
 from . import tree_utils
 from .agent import Agent
@@ -21,16 +21,16 @@ from .types import Trajectory
 def _step(
     agents: TypedPyTree[Agent], env_params: TEnvParams, env: Environment
 ) -> Callable:
-    def inner_step(carry, _) -> Tuple[Tuple, Trajectory]:
+    def inner_step(carry, _) -> Tuple[Tuple, Tuple[Trajectory, TEnvState]]:
         _k, _env_state, _obs, _agent_states = carry
         _k, _k_act, _k_step = jax.random.split(_k, 3)
         _actions, _action_values = tree_utils.sample_actions(
             agents, _k_act, _agent_states, _obs
         )
-        _new_obs, _env_state, _rewards, _done = env.step(
+        _new_obs, _new_env_state, _rewards, _done = env.step(
             _k_step, env_params, _env_state, _actions
         )
-        trajectories = jax.tree.map(
+        _trajectories = jax.tree.map(
             lambda *x: Trajectory(
                 obs=x[0],
                 actions=x[1],
@@ -45,8 +45,8 @@ def _step(
             _done,
         )
         return (
-            (_k, _env_state, _new_obs, _agent_states),
-            trajectories,
+            (_k, _new_env_state, _new_obs, _agent_states),
+            (_trajectories, _env_state),
         )
 
     return inner_step
@@ -103,7 +103,7 @@ def train(
 
     def sample_trajectories(_k, _agent_states):
         _obs, _state = env.reset(_k, env_params)
-        _, trajectories = jax.lax.scan(
+        _, (trajectories, _) = jax.lax.scan(
             step, (_k, _state, _obs, _agent_states), None, length=n_env_steps
         )
         return trajectories
@@ -150,7 +150,8 @@ def test(
     n_env: int,
     n_env_steps: int,
     show_progress: bool = True,
-) -> Trajectory:
+    return_trajectories: bool = False,
+) -> Tuple[TEnvState, Union[Trajectory, chex.ArrayTree]]:
     """
     Test agent(s) performance
 
@@ -177,10 +178,20 @@ def test(
     show_progress
         If ``True`` a testing progress bar will be displayed.
         Default ``True``
+    return_trajectories
+        If ``True`` recorded trajectory data will be returned
+        along with recorded state. If ``False`` the states and
+        recorded rewards will be returned. Default ``False``.
+
+        .. warning::
+
+           Recording trajectories could result in a large amount
+           of data (given it will record observations, actions etc.
+           for each individual agent).
 
     Returns
     -------
-    esquilax.ml.rl.Trajectory
+    tuple[esquilax.typing.TEnvState, esquilax.ml.rl.Trajectory | chex.ArrayTree]
         Update trajectories gathered over testing.
     """
     step = _step(agents, env_params, env)
@@ -190,15 +201,24 @@ def test(
 
     def sample_trajectories(_k, _agent_states):
         _obs, _state = env.reset(_k, env_params)
-        _, _trajectories = jax.lax.scan(
+        _, (_trajectories, _states) = jax.lax.scan(
             step, (_k, _state, _obs, _agent_states), None, length=n_env_steps
         )
-        return _trajectories
+        print(_trajectories)
+        if return_trajectories:
+            return _states, _trajectories
+        else:
+            return _states, jax.tree.map(
+                lambda _, x: x.rewards,
+                agents,
+                _trajectories,
+                is_leaf=lambda x: isinstance(x, Agent),
+            )
 
     k_sample = jax.random.split(key, n_env)
 
-    trajectories = jax.vmap(sample_trajectories, in_axes=(0, None))(
+    states, recorded = jax.vmap(sample_trajectories, in_axes=(0, None))(
         k_sample, agent_states
     )
 
-    return trajectories
+    return states, recorded
