@@ -10,6 +10,22 @@ from esquilax.ml import rl
 from .conftest import SimpleModel
 
 
+def test_agent_state():
+    n_agents = 10
+    observation_shape = (4,)
+
+    k = jax.random.key(451)
+
+    state = rl.AgentState.init_from_model(
+        k, SimpleModel(), optax.adam(1e-4), observation_shape
+    )
+
+    a = jnp.ones((n_agents,) + observation_shape)
+    actions = state.apply(a)
+
+    assert actions.shape == (n_agents,)
+
+
 def test_batch_agent_state():
     n_agents = 10
     observation_shape = (4,)
@@ -42,6 +58,10 @@ def test_batch_agent_state():
     assert updated_state.params["params"]["Dense_0"]["kernel"].shape == (
         n_agents,
     ) + observation_shape + (2,)
+
+    actions = state.apply(a)
+
+    assert actions.shape == (n_agents,)
 
 
 class Agent(rl.Agent):
