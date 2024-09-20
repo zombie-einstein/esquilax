@@ -6,6 +6,7 @@ import jax.numpy as jnp
 import optax
 
 from esquilax import ml
+from esquilax.ml.rl import AgentState
 
 from . import updates
 
@@ -65,13 +66,25 @@ class BoidEnv(ml.rl.Environment[updates.Params, updates.Boid]):
         return obs
 
 
-class RLAgent(ml.rl.SharedPolicyAgent):
-    def sample_actions(self, _k, observations):
-        actions = ml.get_actions(self.apply_fn, True, self.params, observations)
+class RLAgent(ml.rl.Agent):
+    def sample_actions(
+        self,
+        key: chex.PRNGKey,
+        agent_state: AgentState,
+        observations: chex.Array,
+    ) -> Tuple[chex.ArrayTree, chex.ArrayTree]:
+        actions = ml.get_actions(
+            agent_state.apply_fn, True, agent_state.params, observations
+        )
         return actions, None
 
-    def update(self, _k, trajectories):
-        return self, -1
+    def update(
+        self,
+        key: chex.PRNGKey,
+        agent_state: AgentState,
+        trajectories,
+    ) -> Tuple[AgentState, chex.ArrayTree]:
+        return agent_state, -1
 
 
 def rl_boids(
@@ -90,11 +103,13 @@ def rl_boids(
 
     network = updates.MLP(layer_width=layer_width, actions=2)
     opt = optax.adam(1e-4)
-    agents = RLAgent.init(k_init, network, opt, (4,))
+    agent = RLAgent()
+    agent_state = AgentState.init_from_model(k_init, network, opt, (4,))
 
-    trained_agents, rewards, _ = ml.rl.train(
+    trained_agent, rewards, _ = ml.rl.train(
         k_train,
-        agents,
+        agent,
+        agent_state,
         env,
         env_params,
         n_epochs,
@@ -103,4 +118,4 @@ def rl_boids(
         show_progress=show_progress,
     )
 
-    return trained_agents, rewards
+    return trained_agent, rewards

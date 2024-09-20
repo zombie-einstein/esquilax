@@ -1,3 +1,6 @@
+from typing import Tuple
+
+import chex
 import jax
 import jax.numpy as jnp
 import optax
@@ -7,53 +10,65 @@ from esquilax.ml import rl
 from .conftest import SimpleModel
 
 
-def test_batch_agent():
+def test_batch_agent_state():
     n_agents = 10
     observation_shape = (4,)
 
     k = jax.random.key(451)
 
-    agents = rl.BatchPolicyAgent.init(
+    state = rl.BatchAgentState.init_from_model(
         k, SimpleModel(), optax.adam(1e-4), observation_shape, n_agents
     )
 
-    assert agents.step.shape == (n_agents,)
-    assert jnp.array_equal(agents.step, jnp.zeros((n_agents,), dtype=jnp.int32))
-    assert agents.params["params"]["Dense_0"]["bias"].shape == (n_agents, 2)
-    assert agents.params["params"]["Dense_0"]["kernel"].shape == (
+    assert state.step.shape == (n_agents,)
+    assert jnp.array_equal(state.step, jnp.zeros((n_agents,), dtype=jnp.int32))
+    assert state.params["params"]["Dense_0"]["bias"].shape == (n_agents, 2)
+    assert state.params["params"]["Dense_0"]["kernel"].shape == (
         n_agents,
     ) + observation_shape + (2,)
 
     a = jnp.ones((n_agents,) + observation_shape)
 
     def loss(p, x):
-        return agents.apply_fn(p, x)
+        return state.apply_fn(p, x)
 
-    grads = jax.vmap(jax.grad(loss), in_axes=(0, 0))(agents.params, a)
+    grads = jax.vmap(jax.grad(loss), in_axes=(0, 0))(state.params, a)
 
-    updated_agents = agents.apply_grads(grads=grads)
+    updated_state = state.apply_gradients(grads=grads)
 
-    assert isinstance(updated_agents, rl.Agent)
-    assert jnp.array_equal(updated_agents.step, jnp.ones((n_agents,), dtype=jnp.int32))
-    assert updated_agents.params["params"]["Dense_0"]["bias"].shape == (n_agents, 2)
-    assert updated_agents.params["params"]["Dense_0"]["kernel"].shape == (
+    assert isinstance(updated_state, rl.BatchAgentState)
+    assert jnp.array_equal(updated_state.step, jnp.ones((n_agents,), dtype=jnp.int32))
+    assert updated_state.params["params"]["Dense_0"]["bias"].shape == (n_agents, 2)
+    assert updated_state.params["params"]["Dense_0"]["kernel"].shape == (
         n_agents,
     ) + observation_shape + (2,)
 
 
-class Agent(rl.SharedPolicyAgent):
-    def sample_actions(self, _k, observations):
-        return self.apply_fn(self.params, observations), None
+class Agent(rl.Agent):
+    def sample_actions(
+        self,
+        key: chex.PRNGKey,
+        agent_state: rl.AgentState,
+        observations: chex.Array,
+    ) -> Tuple[rl.AgentState, chex.ArrayTree]:
+        return agent_state.apply_fn(agent_state.params, observations), 10
 
-    def update(self, _k, trajectories):
-        return self, (10, 10)
+    def update(
+        self,
+        key: chex.PRNGKey,
+        agent_state: rl.AgentState,
+        trajectories,
+    ) -> Tuple[rl.AgentState, chex.ArrayTree]:
+        return agent_state, (10, 10)
 
 
 def test_training_shared_policy():
     k = jax.random.key(451)
     observation_shape = (4,)
 
-    agent = Agent.init(k, SimpleModel(), optax.adam(1e-4), observation_shape)
+    agent_state = rl.AgentState.init_from_model(
+        k, SimpleModel(), optax.adam(1e-4), observation_shape
+    )
 
     class TestEnv(rl.Environment):
         def step(
@@ -79,7 +94,8 @@ def test_training_shared_policy():
 
     updated_agent, rewards, train_data = rl.train(
         k,
-        agent,
+        Agent(),
+        agent_state,
         env,
         env.default_params,
         n_epochs,
@@ -88,7 +104,7 @@ def test_training_shared_policy():
         show_progress=False,
     )
 
-    assert isinstance(updated_agent, Agent)
+    assert isinstance(updated_agent, rl.AgentState)
     assert rewards.shape == (n_epochs, n_env, n_env_steps)
     assert isinstance(train_data, tuple)
     assert train_data[0].shape == (n_epochs,)
@@ -96,7 +112,8 @@ def test_training_shared_policy():
 
     trajectories = rl.test(
         k,
-        agent,
+        Agent(),
+        agent_state,
         env,
         env.default_params,
         n_env,
@@ -108,16 +125,21 @@ def test_training_shared_policy():
     assert trajectories.rewards.shape == (n_env, n_env_steps)
     assert trajectories.obs.shape == (n_env, n_env_steps) + observation_shape
     assert trajectories.actions.shape == (n_env, n_env_steps)
-    assert trajectories.action_values is None
+    assert trajectories.action_values.shape == (n_env, n_env_steps)
 
 
 def test_training_multi_policy():
     k = jax.random.key(451)
     observation_shape = (4,)
 
-    agents = dict(
-        a=Agent.init(k, SimpleModel(), optax.adam(1e-4), observation_shape),
-        b=Agent.init(k, SimpleModel(), optax.adam(1e-4), observation_shape),
+    agents = dict(a=Agent(), b=Agent())
+    agent_states = dict(
+        a=rl.AgentState.init_from_model(
+            k, SimpleModel(), optax.adam(1e-4), observation_shape
+        ),
+        b=rl.AgentState.init_from_model(
+            k, SimpleModel(), optax.adam(1e-4), observation_shape
+        ),
     )
 
     class TestEnv(rl.Environment):
@@ -150,6 +172,7 @@ def test_training_multi_policy():
     updated_agent, rewards, train_data = rl.train(
         k,
         agents,
+        agent_states,
         env,
         env.default_params,
         n_epochs,
@@ -159,8 +182,8 @@ def test_training_multi_policy():
     )
 
     assert isinstance(updated_agent, dict)
-    assert isinstance(updated_agent["a"], Agent)
-    assert isinstance(updated_agent["b"], Agent)
+    assert isinstance(updated_agent["a"], rl.AgentState)
+    assert isinstance(updated_agent["b"], rl.AgentState)
     assert isinstance(rewards, dict)
     assert rewards["a"].shape == (n_epochs, n_env, n_env_steps)
     assert rewards["b"].shape == (n_epochs, n_env, n_env_steps)
