@@ -70,6 +70,7 @@ class Agent(rl.Agent):
         key: chex.PRNGKey,
         agent_state: rl.AgentState,
         observations: chex.Array,
+        greedy: bool = False,
     ) -> Tuple[rl.AgentState, chex.ArrayTree]:
         return agent_state.apply_fn(agent_state.params, observations), 10
 
@@ -130,7 +131,7 @@ def test_training_shared_policy():
     assert train_data[0].shape == (n_epochs,)
     assert train_data[1].shape == (n_epochs,)
 
-    trajectories = rl.test(
+    states, trajectories = rl.test(
         k,
         Agent(),
         agent_state,
@@ -139,6 +140,7 @@ def test_training_shared_policy():
         n_env,
         n_env_steps,
         show_progress=False,
+        return_trajectories=True,
     )
 
     assert isinstance(trajectories, rl.Trajectory)
@@ -146,6 +148,7 @@ def test_training_shared_policy():
     assert trajectories.obs.shape == (n_env, n_env_steps) + observation_shape
     assert trajectories.actions.shape == (n_env, n_env_steps)
     assert trajectories.action_values.shape == (n_env, n_env_steps)
+    assert states.shape == (n_env, n_env_steps)
 
 
 def test_training_multi_policy():
@@ -212,3 +215,21 @@ def test_training_multi_policy():
     assert train_data["a"][1].shape == (n_epochs,)
     assert train_data["b"][0].shape == (n_epochs,)
     assert train_data["b"][1].shape == (n_epochs,)
+
+    states, rewards = rl.test(
+        k,
+        agents,
+        agent_states,
+        env,
+        env.default_params,
+        n_env,
+        n_env_steps,
+        show_progress=False,
+        return_trajectories=False,
+    )
+
+    assert isinstance(rewards, dict)
+    assert sorted(rewards.keys()) == ["a", "b"]
+    for v in rewards.values():
+        assert v.shape == (n_env, n_env_steps)
+    assert states.shape == (n_env, n_env_steps)
