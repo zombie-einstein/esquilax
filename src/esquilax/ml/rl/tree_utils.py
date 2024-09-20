@@ -19,6 +19,7 @@ def sample_actions(
     key: chex.PRNGKey,
     agent_states: TypedPyTree[Union[AgentState, BatchAgentState]],
     observations: chex.ArrayTree,
+    greedy: bool = False,
 ) -> Tuple[chex.ArrayTree, chex.ArrayTree]:
     """
     Map over a tree of agents, sampling actions from observations
@@ -37,6 +38,8 @@ def sample_actions(
     observations
         PyTree of observations, with tree structure corresponding
         to the agents.
+    greedy
+        Flag to indicate greedy action sampling.
 
     Returns
     -------
@@ -47,7 +50,7 @@ def sample_actions(
     """
     keys = common.key_tree_split(key, agents, typ=Agent)
     results = jax.tree.map(
-        lambda agent, k, state, obs: agent.sample_actions(k, state, obs),
+        lambda agent, k, state, obs: agent.sample_actions(k, state, obs, greedy=greedy),
         agents,
         keys,
         agent_states,

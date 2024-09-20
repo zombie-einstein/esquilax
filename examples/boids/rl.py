@@ -72,6 +72,7 @@ class RLAgent(ml.rl.Agent):
         key: chex.PRNGKey,
         agent_state: AgentState,
         observations: chex.Array,
+        greedy: bool = False,
     ) -> Tuple[chex.ArrayTree, chex.ArrayTree]:
         actions = agent_state.apply(observations)
         return actions, None

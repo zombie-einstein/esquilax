@@ -25,6 +25,7 @@ class Agent:
         key: chex.PRNGKey,
         agent_state: Union[AgentState, BatchAgentState],
         observations: chex.Array,
+        greedy: bool = False,
     ) -> Tuple[chex.ArrayTree, chex.ArrayTree]:
         """
         Sample actions given observations
@@ -37,6 +38,8 @@ class Agent:
             Current agent training state.
         observations
             Environment observations.
+        greedy
+            Flag to indicate greedy action sampling.
 
         Returns
         -------

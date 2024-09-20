@@ -207,7 +207,7 @@ class :py:class:`esquilax.ml.rl.SharedPolicyAgent`
 
    class RLAgent(ml.rl.Agent):
        def sample_actions(
-           self, key, agent_state, observations,
+           self, key, agent_state, observations, greedy=False,
        ):
            actions = agent_state.apply(observations)
            return actions, None

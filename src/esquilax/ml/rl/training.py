@@ -19,13 +19,20 @@ from .types import Trajectory
 
 
 def _step(
-    agents: TypedPyTree[Agent], env_params: TEnvParams, env: Environment
+    agents: TypedPyTree[Agent],
+    env_params: TEnvParams,
+    env: Environment,
+    greedy: bool = False,
 ) -> Callable:
     def inner_step(carry, _) -> Tuple[Tuple, Tuple[Trajectory, TEnvState]]:
         _k, _env_state, _obs, _agent_states = carry
         _k, _k_act, _k_step = jax.random.split(_k, 3)
         _actions, _action_values = tree_utils.sample_actions(
-            agents, _k_act, _agent_states, _obs
+            agents,
+            _k_act,
+            _agent_states,
+            _obs,
+            greedy=greedy,
         )
         _new_obs, _new_env_state, _rewards, _done = env.step(
             _k_step, env_params, _env_state, _actions
@@ -151,6 +158,7 @@ def test(
     n_env_steps: int,
     show_progress: bool = True,
     return_trajectories: bool = False,
+    greedy_actions: bool = False,
 ) -> Tuple[TEnvState, Union[Trajectory, chex.ArrayTree]]:
     """
     Test agent(s) performance
@@ -188,13 +196,15 @@ def test(
            Recording trajectories could result in a large amount
            of data (given it will record observations, actions etc.
            for each individual agent).
+    greedy_actions
+        Flag to indicate actions should be greedily sampled.
 
     Returns
     -------
     tuple[esquilax.typing.TEnvState, esquilax.ml.rl.Trajectory | chex.ArrayTree]
         Update trajectories gathered over testing.
     """
-    step = _step(agents, env_params, env)
+    step = _step(agents, env_params, env, greedy=greedy_actions)
 
     if show_progress:
         step = jax_tqdm.scan_tqdm(n_env_steps, desc="Step")(step)

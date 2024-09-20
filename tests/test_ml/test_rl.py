@@ -70,6 +70,7 @@ class Agent(rl.Agent):
         key: chex.PRNGKey,
         agent_state: rl.AgentState,
         observations: chex.Array,
+        greedy: bool = False,
     ) -> Tuple[rl.AgentState, chex.ArrayTree]:
         return agent_state.apply_fn(agent_state.params, observations), 10
 
