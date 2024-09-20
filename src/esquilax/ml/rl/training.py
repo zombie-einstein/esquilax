@@ -12,7 +12,8 @@ import jax_tqdm
 from esquilax.typing import TEnvParams, TypedPyTree
 
 from . import tree_utils
-from .agents import Agent, AgentState, BatchAgentState
+from .agent import Agent
+from .agent_state import AgentState, BatchAgentState
 from .environment import Environment
 from .types import Trajectory
 

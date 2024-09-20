@@ -9,7 +9,8 @@ import jax
 from esquilax.ml import common
 from esquilax.typing import TypedPyTree
 
-from .agents import Agent, AgentState, BatchAgentState
+from .agent import Agent
+from .agent_state import AgentState, BatchAgentState
 from .types import Trajectory
 
 
