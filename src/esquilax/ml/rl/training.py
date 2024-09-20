@@ -2,7 +2,7 @@
 RL training and testing functionality
 """
 
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Union
 
 import chex
 import jax
@@ -12,16 +12,21 @@ import jax_tqdm
 from esquilax.typing import TEnvParams, TypedPyTree
 
 from . import tree_utils
-from .agents import Agent
+from .agent import Agent
+from .agent_state import AgentState, BatchAgentState
 from .environment import Environment
 from .types import Trajectory
 
 
-def _step(env_params: TEnvParams, env: Environment) -> Callable:
+def _step(
+    agents: TypedPyTree[Agent], env_params: TEnvParams, env: Environment
+) -> Callable:
     def inner_step(carry, _) -> Tuple[Tuple, Trajectory]:
-        _k, _env_state, _obs, _agents = carry
+        _k, _env_state, _obs, _agent_states = carry
         _k, _k_act, _k_step = jax.random.split(_k, 3)
-        _actions, _action_values = tree_utils.sample_actions(_k_act, _agents, _obs)
+        _actions, _action_values = tree_utils.sample_actions(
+            agents, _k_act, _agent_states, _obs
+        )
         _new_obs, _env_state, _rewards, _done = env.step(
             _k_step, env_params, _env_state, _actions
         )
@@ -40,7 +45,7 @@ def _step(env_params: TEnvParams, env: Environment) -> Callable:
             _done,
         )
         return (
-            (_k, _env_state, _new_obs, _agents),
+            (_k, _env_state, _new_obs, _agent_states),
             trajectories,
         )
 
@@ -50,6 +55,7 @@ def _step(env_params: TEnvParams, env: Environment) -> Callable:
 def train(
     key: chex.PRNGKey,
     agents: TypedPyTree[Agent],
+    agent_states: TypedPyTree[Union[AgentState, BatchAgentState]],
     env: Environment,
     env_params: TEnvParams,
     n_epochs: int,
@@ -65,9 +71,9 @@ def train(
     key
         JAX random key.
     agents
-        RL agent, or collection of agents. Multiple
-        agents/policies can be provided to allow for
-        training of multiple agent types.
+        RL agent, or collection of agents functionality.
+    agent_states
+        Corresponding RL agent(s) states
     env
         Training environment/simulation. This should
         implement the :py:class:`esquilax.ml.rl.Environment`
@@ -93,30 +99,30 @@ def train(
         - Training rewards
         - Additional training data
     """
-    step = _step(env_params, env)
+    step = _step(agents, env_params, env)
 
-    def sample_trajectories(_k, _agents):
+    def sample_trajectories(_k, _agent_states):
         _obs, _state = env.reset(_k, env_params)
         _, trajectories = jax.lax.scan(
-            step, (_k, _state, _obs, _agents), None, length=n_env_steps
+            step, (_k, _state, _obs, _agent_states), None, length=n_env_steps
         )
         return trajectories
 
     def epoch(carry, _):
-        _k, _agents = carry
+        _k, _agent_states = carry
         _k, _k_sample, _k_train = jax.random.split(_k, 3)
         _k_sample = jax.random.split(_k_sample, n_env)
         _trajectories = jax.vmap(sample_trajectories, in_axes=(0, None))(
-            _k_sample, _agents
+            _k_sample, _agent_states
         )
-        _agents, _train_data = tree_utils.update_agents(
-            _k_train, _agents, _trajectories
+        _agent_states, _train_data = tree_utils.update_agents(
+            agents, _k_train, _agent_states, _trajectories
         )
 
-        return (_k, _agents), (
+        return (_k, _agent_states), (
             jax.tree.map(
                 lambda _, t: t.rewards,
-                _agents,
+                agents,
                 _trajectories,
                 is_leaf=lambda x: isinstance(x, Agent),
             ),
@@ -126,18 +132,19 @@ def train(
     if show_progress:
         epoch = jax_tqdm.scan_tqdm(n_epochs, desc="Epoch")(epoch)
 
-    (_, agents), (rewards, train_data) = jax.lax.scan(
+    (_, agent_states), (rewards, train_data) = jax.lax.scan(
         epoch,
-        (key, agents),
+        (key, agent_states),
         jnp.arange(n_epochs),
     )
 
-    return agents, rewards, train_data
+    return agent_states, rewards, train_data
 
 
 def test(
     key: chex.PRNGKey,
     agents: TypedPyTree[Agent],
+    agent_states: TypedPyTree[Union[AgentState, BatchAgentState]],
     env: Environment,
     env_params: TEnvParams,
     n_env: int,
@@ -155,9 +162,9 @@ def test(
     key
         JAX random key.
     agents
-        RL agent, or collection of agents. Multiple
-        agents/policies can be provided to allow for
-        testing of multiple agent types.
+        RL agent, or collection of agents functionality.
+    agent_states
+        Corresponding RL agent(s) states
     env
         Training environment/simulation. This should
         implement a Gymnax Environment base class.
@@ -176,20 +183,22 @@ def test(
     esquilax.ml.rl.Trajectory
         Update trajectories gathered over testing.
     """
-    step = _step(env_params, env)
+    step = _step(agents, env_params, env)
 
     if show_progress:
         step = jax_tqdm.scan_tqdm(n_env_steps, desc="Step")(step)
 
-    def sample_trajectories(_k, _agents):
+    def sample_trajectories(_k, _agent_states):
         _obs, _state = env.reset(_k, env_params)
         _, _trajectories = jax.lax.scan(
-            step, (_k, _state, _obs, _agents), None, length=n_env_steps
+            step, (_k, _state, _obs, _agent_states), None, length=n_env_steps
         )
         return _trajectories
 
     k_sample = jax.random.split(key, n_env)
 
-    trajectories = jax.vmap(sample_trajectories, in_axes=(0, None))(k_sample, agents)
+    trajectories = jax.vmap(sample_trajectories, in_axes=(0, None))(
+        k_sample, agent_states
+    )
 
     return trajectories

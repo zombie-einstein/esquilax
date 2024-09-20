@@ -205,15 +205,17 @@ class :py:class:`esquilax.ml.rl.SharedPolicyAgent`
 
 .. testcode:: rl_boids
 
-   class RLAgent(ml.rl.SharedPolicyAgent):
-       def sample_actions(self, _k, observations):
-           actions = ml.get_actions(
-               self.apply_fn, True, self.params, observations
-           )
+   class RLAgent(ml.rl.Agent):
+       def sample_actions(
+           self, key, agent_state, observations,
+       ):
+           actions = agent_state.apply(observations)
            return actions, None
 
-       def update(self, _k, trajectories):
-           return self, -1
+       def update(
+           self, key, agent_state, trajectories,
+       ):
+           return agent_state, -1
 
 The sample actions functions generates actions given
 observations, in this case we simply apply the agent
@@ -246,11 +248,15 @@ We can then run the training loop
 
        network = MLP(layer_width=layer_width, actions=2)
        opt = optax.adam(1e-4)
-       agents = RLAgent.init(k_init, network, opt, (4,))
+       agent = RLAgent()
+       agent_state = ml.rl.AgentState.init_from_model(
+           k_init, network, opt, (4,)
+       )
 
        trained_agents, rewards, _ = ml.rl.train(
            k_train,
-           agents,
+           agent,
+           agent_state,
            env,
            env_params,
            n_epochs,

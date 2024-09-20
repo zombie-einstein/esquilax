@@ -1,7 +1,8 @@
 """
 Reinforcement learning utilities and training functionality
 """
-from .agents import Agent, BatchPolicyAgent, SharedPolicyAgent
+from .agent import Agent
+from .agent_state import AgentState, BatchAgentState
 from .environment import Environment
 from .training import test, train
 from .types import Trajectory
