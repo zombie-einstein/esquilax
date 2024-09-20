@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import optax
 
 from esquilax import ml
-from esquilax.ml.rl import AgentState
+from esquilax.ml.rl import AgentState, Trajectory
 
 from . import updates
 
@@ -73,16 +73,14 @@ class RLAgent(ml.rl.Agent):
         agent_state: AgentState,
         observations: chex.Array,
     ) -> Tuple[chex.ArrayTree, chex.ArrayTree]:
-        actions = ml.get_actions(
-            agent_state.apply_fn, True, agent_state.params, observations
-        )
+        actions = agent_state.apply(observations)
         return actions, None
 
     def update(
         self,
         key: chex.PRNGKey,
         agent_state: AgentState,
-        trajectories,
+        trajectories: Trajectory,
     ) -> Tuple[AgentState, chex.ArrayTree]:
         return agent_state, -1
 
