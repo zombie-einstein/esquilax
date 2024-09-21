@@ -213,9 +213,8 @@ def test(
     def sample_trajectories(_k, _agent_states):
         _obs, _state = env.reset(_k, env_params)
         _, (_trajectories, _states) = jax.lax.scan(
-            step, (_k, _state, _obs, _agent_states), None, length=n_env_steps
+            step, (_k, _state, _obs, _agent_states), jnp.arange(n_env_steps)
         )
-        print(_trajectories)
         if return_trajectories:
             return _states, _trajectories
         else:
