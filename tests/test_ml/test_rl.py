@@ -6,6 +6,7 @@ import jax.numpy as jnp
 import optax
 
 from esquilax.ml import rl
+from esquilax.ml.rl import Trajectory
 
 from .conftest import SimpleModel
 
@@ -72,7 +73,7 @@ class Agent(rl.Agent):
         observations: chex.Array,
         greedy: bool = False,
     ) -> Tuple[rl.AgentState, chex.ArrayTree]:
-        return agent_state.apply_fn(agent_state.params, observations), 10
+        return agent_state.apply_fn(agent_state.params, observations), (10, 11)
 
     def update(
         self,
@@ -147,28 +148,39 @@ def test_training_shared_policy():
     assert trajectories.rewards.shape == (n_env, n_env_steps)
     assert trajectories.obs.shape == (n_env, n_env_steps) + observation_shape
     assert trajectories.actions.shape == (n_env, n_env_steps)
-    assert trajectories.action_values.shape == (n_env, n_env_steps)
+    assert isinstance(trajectories.action_values, tuple)
+    assert trajectories.action_values[0].shape == (n_env, n_env_steps)
+    assert trajectories.action_values[1].shape == (n_env, n_env_steps)
+    assert jnp.array_equal(
+        trajectories.action_values[0],
+        10 * jnp.ones((n_env, n_env_steps), dtype=jnp.int32),
+    )
+    assert jnp.array_equal(
+        trajectories.action_values[1],
+        11 * jnp.ones((n_env, n_env_steps), dtype=jnp.int32),
+    )
     assert states.shape == (n_env, n_env_steps)
 
 
 def test_training_multi_policy():
     k = jax.random.key(451)
-    observation_shape = (4,)
+    observation_shape_a = (4,)
+    observation_shape_b = (3,)
 
     agents = dict(a=Agent(), b=Agent())
     agent_states = dict(
         a=rl.AgentState.init_from_model(
-            k, SimpleModel(), optax.adam(1e-4), observation_shape
+            k, SimpleModel(), optax.adam(1e-4), observation_shape_a
         ),
         b=rl.AgentState.init_from_model(
-            k, SimpleModel(), optax.adam(1e-4), observation_shape
+            k, SimpleModel(), optax.adam(1e-4), observation_shape_b
         ),
     )
 
     class TestEnv(rl.Environment):
         def reset(self, key, params):
             return (
-                dict(a=jnp.ones((4,)), b=jnp.ones((4,))),
+                dict(a=jnp.ones(observation_shape_a), b=jnp.ones(observation_shape_b)),
                 10,
             )
 
@@ -180,7 +192,7 @@ def test_training_multi_policy():
             action,
         ):
             return (
-                dict(a=jnp.ones((4,)), b=jnp.ones((4,))),
+                dict(a=jnp.ones(observation_shape_a), b=jnp.ones(observation_shape_b)),
                 10,
                 dict(a=0, b=0),
                 dict(a=False, b=False),
@@ -216,7 +228,7 @@ def test_training_multi_policy():
     assert train_data["b"][0].shape == (n_epochs,)
     assert train_data["b"][1].shape == (n_epochs,)
 
-    states, rewards = rl.test(
+    states, trajectories = rl.test(
         k,
         agents,
         agent_states,
@@ -225,11 +237,26 @@ def test_training_multi_policy():
         n_env,
         n_env_steps,
         show_progress=False,
-        return_trajectories=False,
+        return_trajectories=True,
     )
 
-    assert isinstance(rewards, dict)
-    assert sorted(rewards.keys()) == ["a", "b"]
-    for v in rewards.values():
-        assert v.shape == (n_env, n_env_steps)
+    assert isinstance(trajectories, dict)
+    assert sorted(trajectories.keys()) == ["a", "b"]
+    for v in trajectories.values():
+        assert isinstance(v, Trajectory)
+        assert v.actions.shape == (n_env, n_env_steps)
+        assert v.rewards.shape == (n_env, n_env_steps)
+        assert isinstance(v.action_values, tuple)
+        assert v.action_values[0].shape == (n_env, n_env_steps)
+        assert jnp.array_equal(
+            v.action_values[0], 10 * jnp.ones((n_env, n_env_steps), dtype=jnp.int32)
+        )
+        assert v.action_values[1].shape == (n_env, n_env_steps)
+        assert jnp.array_equal(
+            v.action_values[1], 11 * jnp.ones((n_env, n_env_steps), dtype=jnp.int32)
+        )
+
+    assert trajectories["a"].obs.shape == (n_env, n_env_steps) + observation_shape_a
+    assert trajectories["b"].obs.shape == (n_env, n_env_steps) + observation_shape_b
+
     assert states.shape == (n_env, n_env_steps)

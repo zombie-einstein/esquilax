@@ -38,18 +38,20 @@ def _step(
             _k_step, env_params, _env_state, _actions
         )
         _trajectories = jax.tree.map(
-            lambda *x: Trajectory(
+            lambda _, *x: Trajectory(
                 obs=x[0],
                 actions=x[1],
                 action_values=x[2],
                 rewards=x[3],
                 done=x[4],
             ),
-            _new_obs,
+            agents,
+            _obs,
             _actions,
             _action_values,
             _rewards,
             _done,
+            is_leaf=lambda x: isinstance(x, Agent),
         )
         return (
             (_k, _new_env_state, _new_obs, _agent_states),
