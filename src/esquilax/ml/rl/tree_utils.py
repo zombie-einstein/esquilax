@@ -5,6 +5,7 @@ from typing import Tuple, Union
 
 import chex
 import jax
+import jax.numpy as jnp
 
 from esquilax.typing import TypedPyTree
 from esquilax.utils import tree
@@ -101,3 +102,36 @@ def update_agents(
     )
     agents, train_data = tree.transpose_tree_of_tuples(agents, updates, 2, Agent)
     return agents, train_data
+
+
+def reshape_trajectories(trajectories: Trajectory) -> Trajectory:
+    """
+    Reshape a batch of trajectories into individual agent histories
+
+    Reshape batch of trajectories gathered across
+    multiple environments, i.e. with shape
+    ``[n-envs, n_steps, n-agents, ...]`` into trajectory
+    histories per agent and environment, i.e. with shape
+    ``[n-envs * n-agents, n_steps, ...]``.
+
+    Parameters
+    ----------
+    trajectories
+        Batch of trajectories with array shapes
+        ``[n-envs, n_steps, n-agents, ...]``.
+
+    Returns
+    -------
+    esquilax.ml.rl.Trajectory
+        Reshaped trajectories with shape
+        ``[n-envs * n-agents, n_steps, ...]``.
+    """
+
+    def reshape(x):
+        x = jnp.swapaxes(x, 1, 2)
+        x = jnp.reshape(x, (x.shape[0] * x.shape[1],) + x.shape[2:])
+        return x
+
+    trajectories = jax.tree.map(reshape, trajectories)
+
+    return trajectories
