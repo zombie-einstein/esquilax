@@ -3,7 +3,7 @@
   <br>
   <em>JAX Multi-Agent RL, A-Life, and Simulation Framework</em>
 </div>
-<br><br>
+<br>
 
 Esquilax is set of transformations and utilities
 intended to allow developers and researchers to
@@ -26,12 +26,17 @@ like [Flax](https://github.com/google/flax) and
   GPU support etc., but also means Esquilax can interoperate
   with existing JAX ML and RL libraries.
 
-- ***Performant Implementations***
+- ***Interaction Algorithm Implementations***
 
-  Implements interaction transformation patterns that
-  typically have high computational complexity. This allows users
-  to concentrate on model design instead of low-level implementation
-  details.
+  Implements common agent interaction patterns. This
+  allows users to concentrate on model design instead of low-level
+  algorithm implementation details.
+
+- ***Scale and Performance***
+
+  JIT compilation and GPU support enables simulations and multi-agent
+  systems containing large numbers of agents whilst maintaining
+  performance and training throughput.
 
 - ***Functional Patterns***
 
@@ -74,6 +79,9 @@ Installation instructions for JAX can be found
 
 Example models and multi-agent policy training implemented using Esquilax
 can be found [here](https://github.com/zombie-einstein/esquilax/tree/main/examples).
+
+For a larger project using Esquilax see this
+[Boid flock RL environment](https://github.com/zombie-einstein/flock_env).
 
 ## Contributing
 
