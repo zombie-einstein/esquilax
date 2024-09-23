@@ -6,7 +6,8 @@ import jax.numpy as jnp
 import optax
 
 from esquilax.ml import rl
-from esquilax.ml.rl import Trajectory
+from esquilax.ml.rl import AgentState, Trajectory
+from esquilax.typing import TEnvParams
 
 from .conftest import SimpleModel
 
@@ -81,7 +82,7 @@ class Agent(rl.Agent):
         agent_state: rl.AgentState,
         trajectories,
     ) -> Tuple[rl.AgentState, chex.ArrayTree]:
-        return agent_state, (10, 10)
+        return agent_state, (8, 9)
 
 
 def test_training_shared_policy():
@@ -130,7 +131,9 @@ def test_training_shared_policy():
     assert rewards.shape == (n_epochs, n_env, n_env_steps)
     assert isinstance(train_data, tuple)
     assert train_data[0].shape == (n_epochs,)
+    assert jnp.array_equal(train_data[0], 8 * jnp.ones((n_epochs,), dtype=jnp.int32))
     assert train_data[1].shape == (n_epochs,)
+    assert jnp.array_equal(train_data[1], 9 * jnp.ones((n_epochs,), dtype=jnp.int32))
 
     states, trajectories = rl.test(
         k,
@@ -260,3 +263,89 @@ def test_training_multi_policy():
     assert trajectories["b"].obs.shape == (n_env, n_env_steps) + observation_shape_b
 
     assert states.shape == (n_env, n_env_steps)
+
+
+def test_update_step():
+    k = jax.random.key(451)
+    observation_shape_a = (4,)
+    observation_shape_b = (3,)
+
+    class TestAgent(rl.Agent):
+        def sample_actions(
+            self,
+            key: chex.PRNGKey,
+            agent_state: rl.AgentState,
+            observations: chex.Array,
+            greedy: bool = False,
+        ) -> Tuple[rl.AgentState, chex.ArrayTree]:
+            return agent_state.apply_fn(agent_state.params, observations), dict(
+                x=10, y=11
+            )
+
+        def update(
+            self,
+            key: chex.PRNGKey,
+            agent_state: rl.AgentState,
+            trajectories,
+        ) -> Tuple[rl.AgentState, chex.ArrayTree]:
+            return agent_state, dict(z=8, w=9)
+
+    class TestEnv(rl.Environment):
+        def default_params(self) -> TEnvParams:
+            None
+
+        def reset(self, key, params):
+            return (
+                dict(a=jnp.ones(observation_shape_a), b=jnp.ones(observation_shape_b)),
+                dict(s0=6, s1=7),
+            )
+
+        def step(
+            self,
+            key,
+            params,
+            state,
+            action,
+        ):
+            return (
+                dict(a=jnp.ones(observation_shape_a), b=jnp.ones(observation_shape_b)),
+                dict(s0=6, s1=7),
+                dict(a=1, b=2),
+                dict(a=False, b=False),
+            )
+
+    agents = dict(a=TestAgent(), b=TestAgent())
+    agent_states = dict(
+        a=rl.AgentState.init_from_model(
+            k, SimpleModel(), optax.adam(1e-4), observation_shape_a
+        ),
+        b=rl.AgentState.init_from_model(
+            k, SimpleModel(), optax.adam(1e-4), observation_shape_b
+        ),
+    )
+
+    env = TestEnv()
+    env_params = env.default_params()
+    obs, env_state = env.reset(k, env_params)
+
+    (_, new_env_state, new_obs, new_agent_states), (
+        trajectory,
+        new_state,
+    ) = rl.training._step(agents, env_params, env)(
+        (k, env_state, obs, agent_states), None
+    )
+
+    assert isinstance(new_env_state, dict)
+    assert new_env_state == dict(s0=6, s1=7)
+    assert jnp.array_equal(new_obs["a"], jnp.ones(observation_shape_a))
+    assert jnp.array_equal(new_obs["b"], jnp.ones(observation_shape_b))
+    assert isinstance(new_agent_states, dict)
+    for v in new_agent_states.values():
+        assert isinstance(v, AgentState)
+    assert isinstance(trajectory, dict)
+    assert jnp.array_equal(trajectory["a"].obs, jnp.ones(observation_shape_a))
+    assert trajectory["a"].action_values == dict(x=10, y=11)
+    assert trajectory["a"].rewards == 1
+    assert jnp.array_equal(trajectory["b"].obs, jnp.ones(observation_shape_b))
+    assert trajectory["b"].action_values == dict(x=10, y=11)
+    assert trajectory["b"].rewards == 2
