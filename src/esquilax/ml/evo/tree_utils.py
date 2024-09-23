@@ -7,8 +7,8 @@ import chex
 import evosax
 import jax
 
-from esquilax.ml import common
 from esquilax.typing import TypedPyTree
+from esquilax.utils import tree
 
 from .strategy import Strategy
 
@@ -51,7 +51,7 @@ def tree_ask(
         Each will have the same tree structure as
         the input arguments.
     """
-    keys = common.key_tree_split(key, strategies, Strategy)
+    keys = tree.key_tree_split(key, strategies, Strategy)
 
     def inner(strat, k, state, params):
         pop, state = strat.ask(k, state, params)
@@ -66,7 +66,7 @@ def tree_ask(
         evo_params,
         is_leaf=lambda x: isinstance(x, Strategy),
     )
-    evo_states, population, population_shaped = common.transpose_tree_of_tuples(
+    evo_states, population, population_shaped = tree.transpose_tree_of_tuples(
         strategies, results, 3, Strategy
     )
     return evo_states, population, population_shaped
@@ -125,7 +125,7 @@ def tree_tell(
         evo_params,
         is_leaf=lambda x: isinstance(x, Strategy),
     )
-    fitness, evo_states = common.transpose_tree_of_tuples(
+    fitness, evo_states = tree.transpose_tree_of_tuples(
         strategies, updates, 2, Strategy
     )
     return fitness, evo_states

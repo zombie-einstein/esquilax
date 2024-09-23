@@ -6,8 +6,8 @@ from typing import Tuple, Union
 import chex
 import jax
 
-from esquilax.ml import common
 from esquilax.typing import TypedPyTree
+from esquilax.utils import tree
 
 from .agent import Agent
 from .agent_state import AgentState, BatchAgentState
@@ -48,7 +48,7 @@ def sample_actions(
         associated with the actions. Both have the same
         tree structure as the argument agents.
     """
-    keys = common.key_tree_split(key, agents, typ=Agent)
+    keys = tree.key_tree_split(key, agents, typ=Agent)
     results = jax.tree.map(
         lambda agent, k, state, obs: agent.sample_actions(k, state, obs, greedy=greedy),
         agents,
@@ -57,7 +57,7 @@ def sample_actions(
         observations,
         is_leaf=lambda x: isinstance(x, Agent),
     )
-    actions, action_values = common.transpose_tree_of_tuples(agents, results, 2, Agent)
+    actions, action_values = tree.transpose_tree_of_tuples(agents, results, 2, Agent)
     return actions, action_values
 
 
@@ -89,7 +89,7 @@ def update_agents(
         (e.g. training loss). Both trees have the same
         structure as the argument agents.
     """
-    keys = common.key_tree_split(key, agents, typ=Agent)
+    keys = tree.key_tree_split(key, agents, typ=Agent)
 
     updates = jax.tree.map(
         lambda agent, k, state, traj: agent.update(k, state, traj),
@@ -99,5 +99,5 @@ def update_agents(
         trajectories,
         is_leaf=lambda x: isinstance(x, Agent),
     )
-    agents, train_data = common.transpose_tree_of_tuples(agents, updates, 2, Agent)
+    agents, train_data = tree.transpose_tree_of_tuples(agents, updates, 2, Agent)
     return agents, train_data
