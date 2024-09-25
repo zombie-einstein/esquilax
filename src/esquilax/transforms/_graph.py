@@ -247,12 +247,12 @@ def graph_reduce(
             edges: Any,
             *,
             edge_idxs: chex.Array,
-            **kwargs,
+            **static_kwargs,
         ) -> Any:
             n_results = utils.functions.get_size(starts) if n < 0 else n
 
             edge_results = _edge_map(
-                k, params, starts, ends, edges, **kwargs, edge_idxs=edge_idxs
+                k, params, starts, ends, edges, **static_kwargs, edge_idxs=edge_idxs
             )
             bin_counts, bins = utils.graph.index_bins(edge_idxs[0], n_results)
             bins = bins.reshape(-1)
@@ -384,3 +384,166 @@ def random_neighbour(default: Any, n: int = -1) -> Callable:
         return _random_neighbour
 
     return random_neighbour_decorator
+
+
+def highest_weight(default: chex.ArrayTree, n: int = -1) -> Callable:
+    """
+    Map function over graph edges with the highest weights
+
+    For each node selects the outgoing edge with the highest
+    weight, and then applies the update function on these edges
+    and connected nodes. If a node has no neighbours the default value
+    is returned instead.
+
+    .. warning::
+
+       Edge indices and any associated data should be
+       sorted using :py:meth:`esquilax.utils.sort_edges`
+
+    Examples
+    --------
+
+    .. testsetup:: graph_reduce
+
+       import esquilax
+       import jax
+       import jax.numpy as jnp
+
+    .. testcode:: graph_reduce
+
+       @esquilax.transforms.highest_weight(-1)
+       def f(k, params, start, end, edge):
+           return params + start + end + edge
+
+       k = jax.random.PRNGKey(101)
+       edge_idxs = jnp.array([[0, 0, 2, 2], [1, 2, 0, 1]])
+       weights = jnp.array([0.1, 0.5, 0.3, 0.2])
+       edges = jnp.array([0, 1, 2, 3])
+       starts = jnp.array([0, 1, 2])
+       ends = jnp.array([0, 1, 2])
+
+       # Call transform with edge indexes
+       f(
+           k, 2,
+           starts,
+           ends,
+           edges,
+           edge_idxs=edge_idxs,
+           weights=weights,
+       )
+       # [5, -1, 6]
+
+    .. testcode:: graph_reduce
+       :hide:
+
+       z =  f(
+           k, 2, starts, ends, edges,
+           edge_idxs=edge_idxs, weights=weights
+       )
+       assert z.tolist() == [5, -1, 6], f"{z}"
+
+    Arguments can also be PyTrees, or ``None`` if unused
+
+    .. testcode:: graph_reduce
+
+       @esquilax.transforms.highest_weight(-1, n=3)
+       def f(k, _params, _start, end, edge):
+           return end[0] + end[1] + edge
+
+       k = jax.random.PRNGKey(101)
+       edge_idxs = jnp.array([[0, 0, 2, 2], [1, 2, 0, 1]])
+       weights = jnp.array([0.1, 0.5, 0.3, 0.2])
+       edges = jnp.array([0, 1, 2, 3])
+       ends = (jnp.array([0, 1, 2]), jnp.array([0, 1, 2]))
+
+       # Call transform with edge indexes
+       f(
+           k,
+           None,
+           None,
+           ends,
+           edges,
+           edge_idxs=edge_idxs,
+           weights=weights,
+       )
+       # [5, -1, 2]
+
+    .. testcode:: graph_reduce
+       :hide:
+
+       z = f(
+           k, None, None, ends, edges,
+           edge_idxs=edge_idxs, weights=weights
+       )
+       assert z.tolist() == [5, -1, 2], f"{z}"
+
+    Parameters
+    ----------
+    default
+        Default/identity value result value
+    n
+        Number of nodes, should be provided if start-node data is ``None``
+    f
+        Function with the signature
+
+        .. code-block:: python
+
+           def f(k, params, start, end, edge,  **static_kwargs):
+               ...
+               return x
+
+        where the arguments are:
+
+        - ``k``: JAX PRNGKey
+        - ``params``: Parameters (shared over the map)
+        - ``start``: Start node data
+        - ``end``: End node data
+        - ``edge``: Edge data
+        - ``**static_kwargs``: Any values required at compile-time
+          by JAX can be passed as keyword arguments.
+    """
+
+    def _highest_weight_decorator(f: Callable) -> Callable:
+        keyword_args = utils.functions.get_keyword_args(f)
+
+        @partial(jax.jit, static_argnames=keyword_args)
+        def _highest_weight(
+            key: chex.PRNGKey,
+            params: Any,
+            starts: Any,
+            ends: Any,
+            edges: Any,
+            *,
+            edge_idxs: chex.Array,
+            weights: chex.Array,
+            **static_kwargs,
+        ) -> Any:
+            n_results = utils.functions.get_size(starts) if n < 0 else n
+            start_nodes = edge_idxs[0]
+            bin_counts, bins = utils.graph.index_bins(start_nodes, n_results)
+
+            s0 = jnp.argsort(weights, descending=True)
+            s1 = jnp.argsort(start_nodes[s0])
+            s2 = s0[s1]
+
+            max_idxs = s2[bins[:, 0]]
+            max_idxs = jnp.where(bin_counts > 0, max_idxs, -1)
+
+            keys = jax.random.split(key, num=n_results)
+
+            def apply(k, i):
+                e = edge_idxs[:, i]
+                a = jax.tree.map(lambda x: x.at[e[0]].get(), starts)
+                b = jax.tree.map(lambda x: x.at[e[1]].get(), ends)
+                c = jax.tree.map(lambda x: x.at[i].get(), edges)
+                return partial(f, **static_kwargs)(k, params, a, b, c)
+
+            def check(k, i):
+                return jax.lax.cond(i < 0, lambda *_: default, apply, k, i)
+
+            results = jax.vmap(check)(keys, max_idxs)
+            return results
+
+        return _highest_weight
+
+    return _highest_weight_decorator
