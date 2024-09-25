@@ -1,7 +1,7 @@
 """
 RL training and testing functionality
 """
-
+from functools import partial
 from typing import Callable, Tuple, Union
 
 import chex
@@ -18,12 +18,40 @@ from .environment import Environment
 from .types import Trajectory
 
 
-def _step(
+def step(
     agents: TypedPyTree[Agent],
     env_params: TEnvParams,
     env: Environment,
     greedy: bool = False,
 ) -> Callable:
+    """
+    Single update of the training environment
+
+    Returns a step function intended for use inside
+    a JAX scan. The step samples agent actions
+    from the current state and updates the environment.
+
+    Parameters
+    ----------
+    agents
+        PyTree of RL agents
+    env_params
+        Environment parameters
+    env
+        Training environment
+    greedy
+        Flag to be passed to RL agent, indicating sampling
+        actions from a greedy policy
+
+    Returns
+    -------
+    typing.Callable
+        Step function for use in :py:meth:`jax.lax.scan`.
+        Carries random keys, environment state and observations.
+        Then returns transitions/trajectories and environment
+        state to be recorded.
+    """
+
     def inner_step(carry, _) -> Tuple[Tuple, Tuple[Trajectory, TEnvState]]:
         _k, _env_state, _obs, _agent_states = carry
         _k, _k_act, _k_step = jax.random.split(_k, 3)
@@ -59,6 +87,124 @@ def _step(
         )
 
     return inner_step
+
+
+def generate_samples(
+    agents: TypedPyTree[Agent],
+    env_params: TEnvParams,
+    env: Environment,
+    n_env_steps: int,
+    key: chex.PRNGKey,
+    agent_states: TypedPyTree[Union[AgentState, BatchAgentState]],
+    greedy: bool = False,
+    show_progress: bool = False,
+) -> Tuple[Trajectory, TEnvState]:
+    """
+    Run the environment forward generating trajectory and state records
+
+    Run the simulation environment and collecting trajectory and
+    environment state records.
+
+    Parameters
+    ----------
+    agents
+        PyTree of RL agents.
+    env_params
+        Environment parameters.
+    env
+        Training environment.
+    n_env_steps
+        Number of steps to run environment.
+    key
+        JAX random key
+    agent_states
+        PyTree of RL agent states
+    greedy
+        Flag to be passed to RL agent, indicating sampling
+        actions from a greedy policy.
+    show_progress
+        If ``True`` a progress bar will show execution progress.
+
+    Returns
+    -------
+    tuple[esquilax.ml.rl.Trajectory, esquilax.typing.TEnvState]
+        Environment observation-action trajectories and
+        recorded environment states. Trajectories have a shape
+        ``[n-steps, n-agents]``.
+    """
+    step_fun = step(agents, env_params, env, greedy=greedy)
+
+    if show_progress:
+        step_fun = jax_tqdm.scan_tqdm(n_env_steps, desc="Step")(step_fun)
+
+    k_reset, k_run = jax.random.split(key, 2)
+    obs, env_state = env.reset(k_reset, env_params)
+    _, (trajectories, env_states) = jax.lax.scan(
+        step_fun, (k_run, env_state, obs, agent_states), None, length=n_env_steps
+    )
+    return trajectories, env_states
+
+
+def batch_generate_samples(
+    agents: TypedPyTree[Agent],
+    env_params: TEnvParams,
+    env: Environment,
+    n_env_steps: int,
+    n_env: int,
+    key: chex.PRNGKey,
+    agent_states: TypedPyTree[Union[AgentState, BatchAgentState]],
+    greedy: bool = False,
+    show_progress: bool = False,
+) -> Tuple[Trajectory, TEnvState]:
+    """
+    Sample trajectories across multiple environments
+
+    Generate samples across multiple environments, across
+    random seeds.
+
+    Parameters
+    ----------
+    agents
+        PyTree of RL agents.
+    env_params
+        Environment parameters.
+    env
+        Training environment.
+    n_env_steps
+        Number of steps to run environment.
+    n_env
+        Number of environments to execute.
+    key
+        JAX random key
+    agent_states
+        PyTree of RL agent states
+    greedy
+        Flag to be passed to RL agent, indicating sampling
+        actions from a greedy policy.
+    show_progress
+        If ``True`` a progress bar will show execution progress.
+
+    Returns
+    -------
+    tuple[esquilax.ml.rl.Trajectory, esquilax.typing.TEnvState]
+        Environment observation-action trajectories and
+        recorded environment states. Trajectories have a shape
+        ``[n-env, n-steps, n-agents]``.
+    """
+    sampling_func = partial(
+        generate_samples,
+        agents,
+        env_params,
+        env,
+        n_env_steps,
+        greedy=greedy,
+        show_progress=show_progress,
+    )
+    keys = jax.random.split(key, n_env)
+    trajectories, env_states = jax.vmap(sampling_func, in_axes=(0, None))(
+        keys, agent_states
+    )
+    return trajectories, env_states
 
 
 def train(
@@ -108,22 +254,22 @@ def train(
         - Training rewards
         - Additional training data
     """
-    step = _step(agents, env_params, env)
 
-    def sample_trajectories(_k, _agent_states):
-        _obs, _state = env.reset(_k, env_params)
-        _, (trajectories, _) = jax.lax.scan(
-            step, (_k, _state, _obs, _agent_states), None, length=n_env_steps
-        )
-        return trajectories
+    batch_sampling_func = partial(
+        batch_generate_samples,
+        agents,
+        env_params,
+        env,
+        n_env_steps,
+        n_env,
+        greedy=False,
+        show_progress=False,
+    )
 
     def epoch(carry, _):
         _k, _agent_states = carry
         _k, _k_sample, _k_train = jax.random.split(_k, 3)
-        _k_sample = jax.random.split(_k_sample, n_env)
-        _trajectories = jax.vmap(sample_trajectories, in_axes=(0, None))(
-            _k_sample, _agent_states
-        )
+        _trajectories, _ = batch_sampling_func(_k_sample, _agent_states)
         _agent_states, _train_data = tree_utils.update_agents(
             agents, _k_train, _agent_states, _trajectories
         )
@@ -207,16 +353,18 @@ def test(
     tuple[esquilax.typing.TEnvState, esquilax.ml.rl.Trajectory | chex.ArrayTree]
         Update trajectories gathered over testing.
     """
-    step = _step(agents, env_params, env, greedy=greedy_actions)
-
-    if show_progress:
-        step = jax_tqdm.scan_tqdm(n_env_steps, desc="Step")(step)
+    sampling_func = partial(
+        generate_samples,
+        agents,
+        env_params,
+        env,
+        n_env_steps,
+        greedy=greedy_actions,
+        show_progress=show_progress,
+    )
 
     def sample_trajectories(_k, _agent_states):
-        _obs, _state = env.reset(_k, env_params)
-        _, (_trajectories, _states) = jax.lax.scan(
-            step, (_k, _state, _obs, _agent_states), jnp.arange(n_env_steps)
-        )
+        _trajectories, _states = sampling_func(_k, _agent_states)
         if return_trajectories:
             return _states, _trajectories
         else:

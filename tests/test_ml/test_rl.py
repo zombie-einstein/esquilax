@@ -331,7 +331,7 @@ def test_update_step():
     (_, new_env_state, new_obs, new_agent_states), (
         trajectory,
         new_state,
-    ) = rl.training._step(agents, env_params, env)(
+    ) = rl.training.step(agents, env_params, env)(
         (k, env_state, obs, agent_states), None
     )
 
