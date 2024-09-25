@@ -8,6 +8,19 @@ import jax.numpy as jnp
 from esquilax import utils
 
 
+def _sort_agents(
+    n_bins: int, width: float, pos: chex.Array, agents: chex.Array
+) -> Tuple[chex.Array, chex.Array, chex.Array, chex.Array, chex.ArrayTree]:
+    idxs = utils.space.get_bins(pos, n_bins, width)
+    sort_idxs = jnp.argsort(idxs)
+    _, bins = utils.graph.index_bins(idxs, n_bins**2)
+    sorted_idxs = idxs[sort_idxs]
+    sorted_pos = pos[sort_idxs]
+    sorted_agents = jax.tree_util.tree_map(lambda y: y[sort_idxs], agents)
+
+    return sort_idxs, bins, sorted_idxs, sorted_pos, sorted_agents
+
+
 def spatial(
     n_bins: int,
     reduction: chex.ArrayTree,
@@ -103,6 +116,32 @@ def spatial(
        >>> foo(k, 2, None, a, pos=x)
        (Array([0, 6, 4], dtype=int32), Array([0, 7, 5], dtype=int32))
 
+    You can also pass different agent types (i.e. two sets
+    of agents with different positions) using the ``pos_b``
+    keyword argument
+
+    .. testcode:: spatial
+
+       @esquilax.transforms.spatial(
+           2, jnp.add, 0, topology="moore",
+       )
+       def foo(_, params, a, b):
+           return params + a + b
+
+       # A consists of 3 agents, and b 2 agents
+       xa = jnp.array([[0.1, 0.1], [0.1, 0.7], [0.75, 0.2]])
+       xb = jnp.array([[0.7, 0.1], [0.75, 0.75]])
+       vals_a = jnp.arange(3)
+       vals_b = jnp.arange(1, 3)
+
+       foo(k, 2, vals_a, vals_b, pos=xa, pos_b=xb)
+
+    .. doctest:: spatial
+       :hide:
+
+       >>> foo(k, 2, vals_a, vals_b, pos=xa, pos_b=xb)
+       Array([22, 26, 17], dtype=int32)
+
     Parameters
     ----------
     n_bins
@@ -154,15 +193,15 @@ def spatial(
         - ``**static_kwargs``: Any arguments required at compile
           time by JAX can be passed as keyword arguments.
     """
-    w = 1.0 / n_bins
-    i_range = w if i_range is None else i_range
+    width = 1.0 / n_bins
+    i_range = width if i_range is None else i_range
 
     chex.assert_trees_all_equal_structs(
         reduction, default
     ), "Reduction and default PyTrees should have the same structure"
 
     def spatial_decorator(f: Callable) -> Callable:
-        t = utils.space.get_cell_neighbours(n_bins, topology)
+        _topology = utils.space.get_cell_neighbours(n_bins, topology)
         keyword_args = utils.functions.get_keyword_args(f)
 
         @partial(jax.jit, static_argnames=keyword_args)
@@ -173,21 +212,33 @@ def spatial(
             agents_b: Any,
             *,
             pos: chex.Array,
+            pos_b: Optional[chex.Array] = None,
             **static_kwargs,
         ) -> Any:
-            idxs = utils.space.get_bins(pos, n_bins, w)
-            sort_idxs = jnp.argsort(idxs)
+            same_types = pos_b is None
 
-            _, bins = utils.graph.index_bins(idxs, n_bins**2)
+            (
+                sort_idxs_a,
+                bins_a,
+                sorted_idxs_a,
+                sorted_pos_a,
+                sorted_agents_a,
+            ) = _sort_agents(n_bins, width, pos, agents_a)
 
-            sorted_idxs = idxs[sort_idxs]
-            sorted_x = pos[sort_idxs]
-            sorted_agents_a = jax.tree_util.tree_map(lambda y: y[sort_idxs], agents_a)
-            sorted_agents_b = jax.tree_util.tree_map(lambda y: y[sort_idxs], agents_b)
+            if same_types:
+                bins_b = bins_a
+                sorted_pos_b = sorted_pos_a
+                sorted_agents_b = jax.tree_util.tree_map(
+                    lambda y: y[sort_idxs_a], agents_b
+                )
+            else:
+                _, bins_b, _, sorted_pos_b, sorted_agents_b = _sort_agents(
+                    n_bins, width, pos_b, agents_b
+                )
 
             def cell(k: chex.PRNGKey, i: int, bin_range: chex.Array) -> Any:
                 agent_a = jax.tree_util.tree_map(lambda y: y[i], sorted_agents_a)
-                pos_a = sorted_x[i]
+                pos_a = sorted_pos_a[i]
 
                 def interact(
                     j: int, _k: chex.PRNGKey, _r: Any
@@ -204,13 +255,13 @@ def spatial(
                     j: int, carry: Tuple[chex.PRNGKey, Any]
                 ) -> Tuple[chex.PRNGKey, Any]:
                     _k, _r = carry
-                    pos_b = sorted_x[j]
+                    pos_b = sorted_pos_b[j]
                     d = utils.space.shortest_distance(pos_a, pos_b, 1.0, norm=False)
                     return jax.lax.cond(
                         d < i_range, interact, lambda _, _x, _z: (_x, _z), j, _k, _r
                     )
 
-                if include_self:
+                if (not same_types) or include_self:
                     _, _results = jax.lax.fori_loop(
                         bin_range[0], bin_range[1], inner, (k, default)
                     )
@@ -231,8 +282,8 @@ def spatial(
                 return _results
 
             def agent_reduce(k: chex.PRNGKey, i: int, bin_idx: int):
-                nbs = t[bin_idx]
-                nb_bins = bins[nbs]
+                nbs = _topology[bin_idx]
+                nb_bins = bins_b[nbs]
                 _keys = jax.random.split(k, nbs.shape[0])
                 _results = jax.vmap(cell, in_axes=(0, None, 0))(_keys, i, nb_bins)
 
@@ -244,10 +295,10 @@ def spatial(
             n_agents = pos.shape[0]
             keys = jax.random.split(key, n_agents)
             results = jax.vmap(agent_reduce, in_axes=(0, 0, 0))(
-                keys, jnp.arange(n_agents), sorted_idxs
+                keys, jnp.arange(n_agents), sorted_idxs_a
             )
 
-            inv_sort = jnp.argsort(sort_idxs)
+            inv_sort = jnp.argsort(sort_idxs_a)
             results = jax.tree_util.tree_map(lambda y: y[inv_sort], results)
 
             return results
