@@ -1,3 +1,6 @@
+"""
+PyTree utilities
+"""
 from typing import Any, Optional, Tuple, Type
 
 import chex

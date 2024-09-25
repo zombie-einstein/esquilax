@@ -5,9 +5,10 @@ from typing import Tuple, Union
 
 import chex
 import jax
+import jax.numpy as jnp
 
-from esquilax.ml import common
 from esquilax.typing import TypedPyTree
+from esquilax.utils import tree
 
 from .agent import Agent
 from .agent_state import AgentState, BatchAgentState
@@ -48,7 +49,7 @@ def sample_actions(
         associated with the actions. Both have the same
         tree structure as the argument agents.
     """
-    keys = common.key_tree_split(key, agents, typ=Agent)
+    keys = tree.key_tree_split(key, agents, typ=Agent)
     results = jax.tree.map(
         lambda agent, k, state, obs: agent.sample_actions(k, state, obs, greedy=greedy),
         agents,
@@ -57,7 +58,7 @@ def sample_actions(
         observations,
         is_leaf=lambda x: isinstance(x, Agent),
     )
-    actions, action_values = common.transpose_tree_of_tuples(agents, results, 2, Agent)
+    actions, action_values = tree.transpose_tree_of_tuples(agents, results, 2, Agent)
     return actions, action_values
 
 
@@ -89,7 +90,7 @@ def update_agents(
         (e.g. training loss). Both trees have the same
         structure as the argument agents.
     """
-    keys = common.key_tree_split(key, agents, typ=Agent)
+    keys = tree.key_tree_split(key, agents, typ=Agent)
 
     updates = jax.tree.map(
         lambda agent, k, state, traj: agent.update(k, state, traj),
@@ -99,5 +100,38 @@ def update_agents(
         trajectories,
         is_leaf=lambda x: isinstance(x, Agent),
     )
-    agents, train_data = common.transpose_tree_of_tuples(agents, updates, 2, Agent)
+    agents, train_data = tree.transpose_tree_of_tuples(agents, updates, 2, Agent)
     return agents, train_data
+
+
+def reshape_trajectories(trajectories: Trajectory) -> Trajectory:
+    """
+    Reshape a batch of trajectories into individual agent histories
+
+    Reshape batch of trajectories gathered across
+    multiple environments, i.e. with shape
+    ``[n-envs, n_steps, n-agents, ...]`` into trajectory
+    histories per agent and environment, i.e. with shape
+    ``[n-envs * n-agents, n_steps, ...]``.
+
+    Parameters
+    ----------
+    trajectories
+        Batch of trajectories with array shapes
+        ``[n-envs, n_steps, n-agents, ...]``.
+
+    Returns
+    -------
+    esquilax.ml.rl.Trajectory
+        Reshaped trajectories with shape
+        ``[n-envs * n-agents, n_steps, ...]``.
+    """
+
+    def reshape(x):
+        x = jnp.swapaxes(x, 1, 2)
+        x = jnp.reshape(x, (x.shape[0] * x.shape[1],) + x.shape[2:])
+        return x
+
+    trajectories = jax.tree.map(reshape, trajectories)
+
+    return trajectories
