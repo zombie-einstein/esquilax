@@ -116,6 +116,32 @@ def spatial(
        >>> foo(k, 2, None, a, pos=x)
        (Array([0, 6, 4], dtype=int32), Array([0, 7, 5], dtype=int32))
 
+    You can also pass different agent types (i.e. two sets
+    of agents with different positions) using the ``pos_b``
+    keyword argument
+
+    .. testcode:: spatial
+
+       @esquilax.transforms.spatial(
+           2, jnp.add, 0, topology="moore",
+       )
+       def foo(_, params, a, b):
+           return params + a + b
+
+       # A consists of 3 agents, and b 2 agents
+       xa = jnp.array([[0.1, 0.1], [0.1, 0.7], [0.75, 0.2]])
+       xb = jnp.array([[0.7, 0.1], [0.75, 0.75]])
+       vals_a = jnp.arange(3)
+       vals_b = jnp.arange(1, 3)
+
+       foo(k, 2, vals_a, vals_b, pos=xa, pos_b=xb)
+
+    .. doctest:: spatial
+       :hide:
+
+       >>> foo(k, 2, vals_a, vals_b, pos=xa, pos_b=xb)
+       Array([22, 26, 17], dtype=int32)
+
     Parameters
     ----------
     n_bins
@@ -189,6 +215,8 @@ def spatial(
             pos_b: Optional[chex.Array] = None,
             **static_kwargs,
         ) -> Any:
+            same_types = pos_b is None
+
             (
                 sort_idxs_a,
                 bins_a,
@@ -197,10 +225,12 @@ def spatial(
                 sorted_agents_a,
             ) = _sort_agents(n_bins, width, pos, agents_a)
 
-            if pos_b is None:
+            if same_types:
                 bins_b = bins_a
                 sorted_pos_b = sorted_pos_a
-                sorted_agents_b = sorted_agents_a
+                sorted_agents_b = jax.tree_util.tree_map(
+                    lambda y: y[sort_idxs_a], agents_b
+                )
             else:
                 _, bins_b, _, sorted_pos_b, sorted_agents_b = _sort_agents(
                     n_bins, width, pos_b, agents_b
@@ -231,7 +261,7 @@ def spatial(
                         d < i_range, interact, lambda _, _x, _z: (_x, _z), j, _k, _r
                     )
 
-                if include_self:
+                if (not same_types) or include_self:
                     _, _results = jax.lax.fori_loop(
                         bin_range[0], bin_range[1], inner, (k, default)
                     )

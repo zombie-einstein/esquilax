@@ -161,3 +161,103 @@ def test_spatial_interaction_w_static():
         results,
         jnp.array(expected),
     )
+
+
+def test_spatial_mixed_data():
+    k = jax.random.PRNGKey(101)
+    x = jnp.array([[0.1, 0.1], [0.1, 0.7]])
+
+    @transforms.spatial(
+        2, jnp.add, 0, include_self=False, topology="von-neumann", i_range=10.0
+    )
+    def foo(_, params, a, b):
+        return params + a + b
+
+    vals_a = jnp.arange(1, 3)
+    vals_b = jnp.arange(6, 8)
+
+    results = foo(k, 2, vals_a, vals_b, pos=x)
+
+    expected = [20, 20]
+
+    assert jnp.array_equal(
+        results,
+        jnp.array(expected),
+    )
+
+
+def test_spatial_w_none():
+    k = jax.random.PRNGKey(101)
+    x = jnp.array([[0.1, 0.1], [0.1, 0.7]])
+
+    @transforms.spatial(
+        2, jnp.add, 0, include_self=False, topology="von-neumann", i_range=10.0
+    )
+    def foo(_, params, _a, b):
+        return params + b
+
+    vals_b = jnp.arange(1, 3)
+
+    results = foo(k, 2, None, vals_b, pos=x)
+
+    expected = [8, 6]
+
+    assert jnp.array_equal(
+        results,
+        jnp.array(expected),
+    )
+
+    @transforms.spatial(
+        2, jnp.add, 0, include_self=False, topology="von-neumann", i_range=10.0
+    )
+    def bar(_, params, a, _b):
+        return params + a
+
+    vals_a = jnp.arange(1, 3)
+
+    results = bar(k, 2, vals_a, None, pos=x)
+
+    expected = [6, 8]
+
+    assert jnp.array_equal(
+        results,
+        jnp.array(expected),
+    )
+
+
+@pytest.mark.parametrize(
+    "expected, include_self, topology, i_range",
+    [
+        ([0, 0, 5], True, "same-cell", 10.0),
+        ([0, 0, 5], False, "same-cell", 10.0),
+        ([6, 10, 17], True, "von-neumann", 10.0),
+        ([6, 10, 17], False, "von-neumann", 10.0),
+        ([22, 26, 17], True, "moore", 10.0),
+        ([22, 26, 17], False, "moore", 10.0),
+        ([0, 0, 0], True, "moore", 0.00001),
+        ([0, 0, 0], False, "moore", 0.00001),
+    ],
+)
+def test_mixed_type_spatial_interaction(
+    expected: chex.Array, include_self: bool, topology: str, i_range: float
+):
+    k = jax.random.PRNGKey(101)
+
+    xa = jnp.array([[0.1, 0.1], [0.1, 0.7], [0.75, 0.2]])
+    xb = jnp.array([[0.7, 0.1], [0.75, 0.75]])
+
+    @transforms.spatial(
+        2, jnp.add, 0, include_self=include_self, topology=topology, i_range=i_range
+    )
+    def foo(_, params, a, b):
+        return params + a + b
+
+    vals_a = jnp.arange(3)
+    vals_b = jnp.arange(1, 3)
+
+    results = foo(k, 2, vals_a, vals_b, pos=xa, pos_b=xb)
+
+    assert jnp.array_equal(
+        results,
+        jnp.array(expected),
+    )
