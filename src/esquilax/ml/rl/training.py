@@ -382,3 +382,148 @@ def test(
     )
 
     return states, recorded
+
+
+def train_and_test(
+    key: chex.PRNGKey,
+    agents: TypedPyTree[Agent],
+    agent_states: TypedPyTree[Union[AgentState, BatchAgentState]],
+    env: Environment,
+    env_params: TEnvParams,
+    n_train_steps: int,
+    test_every: int,
+    n_train_env: int,
+    n_test_env: int,
+    n_env_steps: int,
+    show_progress: bool = True,
+    return_trajectories: bool = False,
+    greedy_test_actions: bool = False,
+) -> Tuple[
+    TypedPyTree[Union[AgentState, BatchAgentState]],
+    chex.Array,
+    chex.ArrayTree,
+    chex.ArrayTree,
+    chex.ArrayTree,
+]:
+    """
+    RL train and test loop
+
+    Train an RL agent(s) and test at fixed intervals.
+    Agent rewards and losses are tracked over the
+    course of training. Rewards (or optionally state
+    transitions) and the state of the environment are
+    recorded during testing.
+
+    Parameters
+    ----------
+    key
+        JAX random key.
+    agents
+        PyTree of RL agent definitions.
+    agent_states
+        PyTree of RL agent states.
+    env
+        Training environment definition.
+    env_params
+        Environment parameters.
+    n_train_steps
+        Total number of training steps.
+    test_every
+        Number of steps between testing.
+    n_train_env
+        Number of environments to run during training.
+    n_test_env
+        Number of environments to run during testing.
+    n_env_steps
+        Number of environment updates per episode.
+    show_progress
+        If ``True`` training/testing progress will
+        be displayed.
+    return_trajectories
+        If ``True`` during testing trajectory data will be recorded
+        along with environment state. If ``False`` the state and
+        rewards will be recorded. Default ``False``.
+
+        .. warning::
+
+           Recording trajectories could result in a large amount
+           of data (given it will record observations, actions etc.
+           for each individual agent at each step).
+
+    greedy_test_actions
+        If ``True`` greedy action sampling flag will be passed
+        to the RL agent(s) during testing.
+
+    Returns
+    -------
+    tuple
+        Tuple containing
+
+        - PyTree of trained agent states
+        - Individual agent rewarded recorded over training
+        - Loss data recorded during training
+        - Env state history recorded during testing
+        - Rewards or trajectories recorded during testing
+    """
+    assert (
+        n_env_steps % test_every == 0
+    ), "n_train_steps should be a multiple of test_every"
+
+    n_steps = n_train_steps // test_every
+
+    def train_test_step(
+        _key: chex.PRNGKey,
+        _agent_states: TypedPyTree[Union[AgentState, BatchAgentState]],
+    ):
+        _key, k_train, k_test = jax.random.split(_key, 3)
+        _agent_states, _train_rewards, _train_losses = train(
+            k_train,
+            agents,
+            _agent_states,
+            env,
+            env_params,
+            test_every,
+            n_train_env,
+            n_env_steps,
+            show_progress=show_progress,
+        )
+        _env_state_records, _test_rewards = test(
+            k_test,
+            agents,
+            _agent_states,
+            env,
+            env_params,
+            n_test_env,
+            n_env_steps,
+            show_progress=show_progress,
+            return_trajectories=return_trajectories,
+            greedy_actions=greedy_test_actions,
+        )
+        return (_key, _agent_states), (
+            _train_rewards,
+            _train_losses,
+            _env_state_records,
+            _test_rewards,
+        )
+
+    (_, trained_agent_states), (
+        train_rewards,
+        train_losses,
+        env_state_records,
+        test_rewards,
+    ) = jax.lax.scan(train_test_step, (key, agent_states), None, length=n_steps)
+
+    def reshape_train_data(x):
+        s0 = x.shape[0] * x.shape[1]
+        return jnp.reshape(x, (s0,) + x.shape[2:])
+
+    train_rewards = reshape_train_data(train_rewards)
+    train_losses = jax.tree.map(reshape_train_data, train_losses)
+
+    return (
+        trained_agent_states,
+        train_rewards,
+        train_losses,
+        env_state_records,
+        test_rewards,
+    )
