@@ -5,7 +5,6 @@ import jax
 import jax.numpy as jnp
 import optax
 
-import esquilax.ml.rl
 from esquilax.ml import rl
 from esquilax.ml.rl import AgentState, Trajectory
 from esquilax.typing import TEnvParams
@@ -395,7 +394,7 @@ def test_train_test_loop():
         train_losses,
         env_state_records,
         test_rewards,
-    ) = esquilax.ml.rl.train_and_test(
+    ) = rl.train_and_test(
         key,
         Agent(),
         agent_state,
