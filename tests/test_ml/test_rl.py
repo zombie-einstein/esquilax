@@ -405,7 +405,7 @@ def test_train_test_loop():
         n_train_env,
         n_test_env,
         n_env_steps,
-        show_progress=False,
+        show_progress=True,
         return_trajectories=False,
         greedy_test_actions=True,
     )

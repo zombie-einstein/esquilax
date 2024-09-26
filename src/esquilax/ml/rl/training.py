@@ -140,7 +140,7 @@ def generate_samples(
     k_reset, k_run = jax.random.split(key, 2)
     obs, env_state = env.reset(k_reset, env_params)
     _, (trajectories, env_states) = jax.lax.scan(
-        step_fun, (k_run, env_state, obs, agent_states), None, length=n_env_steps
+        step_fun, (k_run, env_state, obs, agent_states), jnp.arange(n_env_steps)
     )
     return trajectories, env_states
 
