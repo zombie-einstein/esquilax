@@ -271,9 +271,9 @@ def graph_reduce(
     return _graph_reduce_decorator
 
 
-def random_neighbour(default: Any, n: int = -1) -> Callable:
+def random_edge(default: Any, n: int = -1) -> Callable:
     """
-    Apply function to random selected graph neighbours
+    Apply function to randomly selected edge from each node
 
     For each start node select a random neighbour on
     the graph (i.e. a random edge starting at that node)
@@ -296,7 +296,7 @@ def random_neighbour(default: Any, n: int = -1) -> Callable:
 
     .. testcode:: random_neighbour
 
-       @esquilax.transforms.random_neighbour(0, n=3)
+       @esquilax.transforms.random_edge(0, n=3)
        def f(k, _params, _start, end, edge):
            return end[0] + end[1] + edge
 
@@ -342,11 +342,11 @@ def random_neighbour(default: Any, n: int = -1) -> Callable:
           by JAX can be passed as keyword arguments.
     """
 
-    def random_neighbour_decorator(f: Callable) -> Callable:
+    def random_edge_decorator(f: Callable) -> Callable:
         keyword_args = utils.functions.get_keyword_args(f)
 
         @partial(jax.jit, static_argnames=keyword_args)
-        def _random_neighbour(
+        def _random_edge(
             k: chex.PRNGKey,
             params: Any,
             starts: Any,
@@ -381,9 +381,9 @@ def random_neighbour(default: Any, n: int = -1) -> Callable:
                 bins,
             )
 
-        return _random_neighbour
+        return _random_edge
 
-    return random_neighbour_decorator
+    return random_edge_decorator
 
 
 def highest_weight(default: chex.ArrayTree, n: int = -1) -> Callable:
