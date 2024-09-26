@@ -414,6 +414,10 @@ def train_and_test(
     transitions) and the state of the environment are
     recorded during testing.
 
+    It's assumed that collecting samples across multiple
+    agents and environments so the agent training is
+    performed each training step.
+
     Parameters
     ----------
     key
@@ -466,15 +470,14 @@ def train_and_test(
         - Rewards or trajectories recorded during testing
     """
     assert (
-        n_env_steps % test_every == 0
+        n_train_steps % test_every == 0
     ), "n_train_steps should be a multiple of test_every"
 
     n_steps = n_train_steps // test_every
 
-    def train_test_step(
-        _key: chex.PRNGKey,
-        _agent_states: TypedPyTree[Union[AgentState, BatchAgentState]],
-    ):
+    def train_test_step(carry, _):
+        _key, _agent_states = carry
+
         _key, k_train, k_test = jax.random.split(_key, 3)
         _agent_states, _train_rewards, _train_losses = train(
             k_train,

@@ -5,6 +5,7 @@ import jax
 import jax.numpy as jnp
 import optax
 
+import esquilax.ml.rl
 from esquilax.ml import rl
 from esquilax.ml.rl import AgentState, Trajectory
 from esquilax.typing import TEnvParams
@@ -349,3 +350,71 @@ def test_update_step():
     assert jnp.array_equal(trajectory["b"].obs, jnp.ones(observation_shape_b))
     assert trajectory["b"].action_values == dict(x=10, y=11)
     assert trajectory["b"].rewards == 2
+
+
+def test_train_test_loop():
+    key = jax.random.key(451)
+    observation_shape = (4,)
+
+    agent_state = rl.AgentState.init_from_model(
+        key, SimpleModel(), optax.adam(1e-4), observation_shape
+    )
+
+    class TestEnv(rl.Environment):
+        def step(
+            self,
+            k,
+            params,
+            state,
+            action,
+        ):
+            return jnp.ones((4,)), 10, 0, False
+
+        def default_params(self) -> int:
+            return 10
+
+        def reset(self, k, params):
+            return jnp.ones((4,)), 10
+
+        def get_obs(self, state, params):
+            raise jnp.ones((4,))
+
+    env = TestEnv()
+    env_params = env.default_params()
+
+    n_train_steps = 6
+    test_every = 3
+    n_train_env = 4
+    n_test_env = 2
+    n_env_steps = 5
+    n_loops = n_train_steps // test_every
+
+    (
+        new_agent_state,
+        train_rewards,
+        train_losses,
+        env_state_records,
+        test_rewards,
+    ) = esquilax.ml.rl.train_and_test(
+        key,
+        Agent(),
+        agent_state,
+        env,
+        env_params,
+        n_train_steps,
+        test_every,
+        n_train_env,
+        n_test_env,
+        n_env_steps,
+        show_progress=False,
+        return_trajectories=False,
+        greedy_test_actions=True,
+    )
+
+    assert isinstance(new_agent_state, AgentState)
+    assert train_rewards.shape == (n_train_steps, n_train_env, n_env_steps)
+    assert isinstance(train_losses, tuple)
+    assert train_losses[0].shape == (n_train_steps,)
+    assert train_losses[1].shape == (n_train_steps,)
+    assert env_state_records.shape == (n_loops, n_test_env, n_env_steps)
+    assert test_rewards.shape == (n_loops, n_test_env, n_env_steps)
