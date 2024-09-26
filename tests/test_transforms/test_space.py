@@ -261,3 +261,29 @@ def test_mixed_type_spatial_interaction(
         results,
         jnp.array(expected),
     )
+
+
+@pytest.mark.parametrize(
+    "expected, topology, i_range",
+    [
+        ([3, 3, -1], "same-cell", 10.0),
+        ([3, 3, 5], "von-neumann", 10.0),
+        ([3, 3, 5], "moore", 10.0),
+        ([-1, -1, -1], "moore", 0.00001),
+    ],
+)
+def test_nearest_neighbour(expected: chex.Array, topology: str, i_range: float):
+    k = jax.random.PRNGKey(101)
+    x = jnp.array([[0.1, 0.1], [0.1, 0.2], [0.1, 0.6]])
+
+    @transforms.nearest_neighbour(2, -1, topology=topology, i_range=i_range)
+    def foo(_, params, a, b):
+        return params + a + b
+
+    vals = jnp.arange(3)
+    results = foo(k, 2, vals, vals, pos=x)
+
+    assert jnp.array_equal(
+        results,
+        jnp.array(expected),
+    )
