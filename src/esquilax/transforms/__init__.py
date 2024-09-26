@@ -7,4 +7,4 @@ that update the state of agents/entities.
 """
 from ._graph import edge_map, graph_reduce, highest_weight, random_neighbour
 from ._map import amap
-from ._space import spatial
+from ._space import nearest_neighbour, spatial
