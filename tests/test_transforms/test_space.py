@@ -3,6 +3,7 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+import esquilax.utils
 from esquilax import transforms
 
 
@@ -287,3 +288,87 @@ def test_nearest_neighbour(expected: chex.Array, topology: str, i_range: float):
         results,
         jnp.array(expected),
     )
+
+
+@pytest.mark.parametrize(
+    "n_agents, i_range",
+    [
+        (2, 0.1),
+        (10, 0.1),
+        (20, 0.1),
+        (40, 0.1),
+        (2, 0.05),
+        (10, 0.05),
+        (20, 0.05),
+        (40, 0.05),
+    ],
+)
+def test_space_fuzzy_same_type(n_agents: int, i_range: float):
+    k = jax.random.PRNGKey(101)
+    x = jax.random.uniform(k, (n_agents, 2))
+
+    @transforms.spatial(
+        10, jnp.add, 0, include_self=True, topology="moore", i_range=i_range
+    )
+    def foo(_k, _p, a, b):
+        return a - b
+
+    vals_a = jnp.arange(1, n_agents + 1)
+    vals_b = jnp.arange(2, n_agents + 2)
+    results = foo(k, None, vals_a, vals_b, pos=x)
+
+    d = jax.vmap(
+        lambda a: jax.vmap(lambda b: esquilax.utils.shortest_distance(a, b, norm=True))(
+            x
+        )
+    )(x)
+
+    expected = jax.vmap(lambda a, b: a - b, in_axes=(0, None))(vals_a, vals_b)
+    expected = jnp.where(d < i_range, expected, 0)
+    expected = jnp.sum(expected, axis=1)
+
+    assert jnp.array_equal(results, expected)
+
+
+@pytest.mark.parametrize(
+    "n_agents, i_range",
+    [
+        (2, 0.1),
+        (10, 0.1),
+        (20, 0.1),
+        (40, 0.1),
+        (2, 0.05),
+        (10, 0.05),
+        (20, 0.05),
+        (40, 0.05),
+    ],
+)
+def test_space_fuzzy_diff_types(n_agents: int, i_range: float):
+    k = jax.random.PRNGKey(101)
+    ka, kb = jax.random.split(k)
+
+    n_agents_a = n_agents
+    n_agents_b = n_agents + 2
+
+    xa = jax.random.uniform(ka, (n_agents_a, 2))
+    xb = jax.random.uniform(kb, (n_agents_b, 2))
+
+    @transforms.spatial(10, jnp.add, 0, topology="moore", i_range=i_range)
+    def foo(_k, _p, a, b):
+        return a - b
+
+    vals_a = jnp.arange(1, n_agents_a + 1)
+    vals_b = jnp.arange(2, n_agents_b + 2)
+    results = foo(k, None, vals_a, vals_b, pos=xa, pos_b=xb)
+
+    d = jax.vmap(
+        lambda a: jax.vmap(lambda b: esquilax.utils.shortest_distance(a, b, norm=True))(
+            xb
+        )
+    )(xa)
+
+    expected = jax.vmap(lambda a, b: a - b, in_axes=(0, None))(vals_a, vals_b)
+    expected = jnp.where(d < i_range, expected, 0)
+    expected = jnp.sum(expected, axis=1)
+
+    assert jnp.array_equal(results, expected)
