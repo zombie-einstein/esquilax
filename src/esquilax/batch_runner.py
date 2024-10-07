@@ -8,6 +8,7 @@ import chex
 import jax
 
 from .sim import Sim, TSimParams
+from .utils.functions import get_size
 
 
 def batch_sim_runner(
@@ -69,19 +70,30 @@ def batch_sim_runner(
     if params is None and param_samples is None:
         params = sim.default_params()
 
-    def inner(k, _params):
+    def inner(k, i, _params):
         _, records = sim.init_and_run(
-            n_steps, k, show_progress=show_progress, params=_params, **step_kwargs
+            n_steps,
+            k,
+            show_progress=show_progress,
+            pbar_id=i,
+            params=_params,
+            **step_kwargs,
         )
         return records
 
-    def sample_params(k, _params):
+    def sample_params(k, _params, pbar_offset):
+        pbar_offset = pbar_offset * n_samples
         keys = jax.random.split(k, n_samples)
-        return jax.vmap(inner, in_axes=(0, None))(keys, _params)
+        return jax.vmap(inner, in_axes=(0, 0, None))(
+            keys, pbar_offset + jax.numpy.arange(n_samples), _params
+        )
 
     if params is not None:
-        batch_records = sample_params(key, params)
+        batch_records = sample_params(key, params, 0)
     else:
-        batch_records = jax.vmap(sample_params, in_axes=(None, 0))(key, param_samples)
+        n_params = get_size(param_samples)
+        batch_records = jax.vmap(sample_params, in_axes=(None, 0, 0))(
+            key, param_samples, jax.numpy.arange(n_params)
+        )
 
     return batch_records

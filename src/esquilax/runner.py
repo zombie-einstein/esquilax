@@ -16,6 +16,7 @@ def sim_runner(
     n_steps: int,
     rng: Union[chex.PRNGKey, int],
     show_progress: bool = True,
+    pbar_id: int = 0,
     **static_kwargs,
 ) -> Tuple[Any, Any, chex.PRNGKey]:
     """
@@ -59,6 +60,9 @@ def sim_runner(
         Either an integer random seed, or a JAX PRNGKey.
     show_progress
         If ``True`` a progress bar will be shown.
+    pbar_id
+        Optional progress bar index, can be used to print
+        multiple progress bars.
     **static_kwargs
         Any keyword static values passed to the step function.
         These should be used for any values or functionality required
@@ -83,11 +87,17 @@ def sim_runner(
         new_state, records = step_fun(i, step_key, params, state)
         return (k, new_state), records
 
+    init = (key, initial_state)
+
     if show_progress:
         step = jax_tqdm.scan_tqdm(n_steps, desc="Step")(step)
+        init = jax_tqdm.PBar(id=pbar_id, carry=init)
 
-    (key, final_state), record_history = jax.lax.scan(
-        step, (key, initial_state), jax.numpy.arange(n_steps)
-    )
+    final_value, record_history = jax.lax.scan(step, init, jax.numpy.arange(n_steps))
+
+    if show_progress:
+        (key, final_state) = final_value.carry
+    else:
+        (key, final_state) = final_value
 
     return final_state, record_history, key

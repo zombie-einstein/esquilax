@@ -108,6 +108,7 @@ class Sim(Generic[TSimParams, TSimState]):
         params: TSimParams,
         initial_state: TSimState,
         show_progress: bool = True,
+        pbar_id: int = 0,
         **step_kwargs: Any
     ) -> Tuple[TSimState, chex.ArrayTree, chex.PRNGKey]:
         """
@@ -126,6 +127,9 @@ class Sim(Generic[TSimParams, TSimState]):
         show_progress
             If ``True`` a progress bar will be displayed.
             Default ``True``
+        pbar_id
+            Optional progress bar index, can be used to print
+            multiple progress bars.
         **step_kwargs
             Any additional keyword arguments passed to the
             step function. Arguments are static over the
@@ -147,6 +151,7 @@ class Sim(Generic[TSimParams, TSimState]):
             n_steps,
             key,
             show_progress=show_progress,
+            pbar_id=pbar_id,
         )
 
         return final_state, records, k
@@ -158,6 +163,7 @@ class Sim(Generic[TSimParams, TSimState]):
         key: chex.PRNGKey,
         show_progress: bool = True,
         params: Optional[TSimParams] = None,
+        pbar_id: int = 0,
         **step_kwargs
     ) -> Tuple[TSimState, chex.ArrayTree]:
         """
@@ -175,6 +181,9 @@ class Sim(Generic[TSimParams, TSimState]):
         params
             Optional simulation parameters, if not provided
             default sim parameters will be used.
+        pbar_id
+            Optional progress bar index, can be used to print
+            multiple progress bars.
         **step_kwargs
             Any additional keyword arguments passed to the
             step function. Arguments are static over the
@@ -199,6 +208,7 @@ class Sim(Generic[TSimParams, TSimState]):
             params,
             initial_state,
             show_progress=show_progress,
+            pbar_id=pbar_id,
             **step_kwargs
         )
 

@@ -173,19 +173,19 @@ files = [
 
 [[package]]
 name = "chex"
-version = "0.1.86"
+version = "0.1.87"
 description = "Chex: Testing made fun, in JAX!"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "chex-0.1.86-py3-none-any.whl", hash = "sha256:251c20821092323a3d9c28e1cf80e4a58180978bec368f531949bd9847eee568"},
-    {file = "chex-0.1.86.tar.gz", hash = "sha256:e8b0f96330eba4144659e1617c0f7a57b161e8cbb021e55c6d5056c7378091d1"},
+    {file = "chex-0.1.87-py3-none-any.whl", hash = "sha256:ce536475661fd96d21be0c1728ecdbedd03f8ff950c662dfc338c92ea782cb16"},
+    {file = "chex-0.1.87.tar.gz", hash = "sha256:0096d89cc8d898bb521ef4bfbf5c24549022b0e5b301f529ab57238896fe6c5d"},
 ]
 
 [package.dependencies]
 absl-py = ">=0.9.0"
-jax = ">=0.4.16"
-jaxlib = ">=0.1.37"
+jax = ">=0.4.27"
+jaxlib = ">=0.4.27"
 numpy = ">=1.24.1"
 setuptools = {version = "*", markers = "python_version >= \"3.12\""}
 toolz = ">=0.9.0"
@@ -665,16 +665,17 @@ tpu = ["jaxlib (==0.4.33)", "libtpu-nightly (==0.1.dev20240916)", "requests"]
 
 [[package]]
 name = "jax-tqdm"
-version = "0.2.2"
+version = "0.3.0"
 description = "Tqdm progress bar for JAX scans and loops"
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "jax_tqdm-0.2.2-py3-none-any.whl", hash = "sha256:4007ce510e7bc81efc8dd75330f842d4698b8ec5cbd61453f8fe0b237b16af26"},
-    {file = "jax_tqdm-0.2.2.tar.gz", hash = "sha256:178cf14f77c11f1318bd305d14771185aff72fb1a03332e06c78e51cc230f888"},
+    {file = "jax_tqdm-0.3.0-py3-none-any.whl", hash = "sha256:1e603afb127b145ab95e56c1b861207c8ef69872d38ed1dc1984c1cdd6b79d8f"},
+    {file = "jax_tqdm-0.3.0.tar.gz", hash = "sha256:6f3434a1895352db69619e084d5c4b0e77096e75b2b5ef0c81a4667611b64cf1"},
 ]
 
 [package.dependencies]
+chex = ">=0.1.87,<0.2.0"
 jax = ">=0.4.12"
 tqdm = ">=4.64.1,<5.0.0"
 
@@ -2088,4 +2089,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "db95c2187f889660e1cfc93572ccc84bee01f49c505974769a96456df0e901cb"
+content-hash = "0e8b74f9bb1908f92dd9847eb556d3444d87bace0d1190f00409ef5079c5b01e"

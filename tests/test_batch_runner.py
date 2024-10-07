@@ -20,7 +20,8 @@ def sim():
     return TestSim()
 
 
-def test_single_params(sim):
+@pytest.mark.parametrize("show_progress", [True, False])
+def test_single_params(sim, show_progress):
     n_samples = 2
     n_steps = 10
 
@@ -29,7 +30,7 @@ def test_single_params(sim):
         n_samples,
         n_steps,
         101,
-        show_progress=False,
+        show_progress=show_progress,
     )
 
     assert isinstance(results, tuple)
@@ -37,7 +38,8 @@ def test_single_params(sim):
     assert results[1].shape == (n_samples, n_steps)
 
 
-def test_param_set(sim):
+@pytest.mark.parametrize("show_progress", [True, False])
+def test_param_set(sim, show_progress):
     n_params = 3
     n_samples = 2
     n_steps = 10
@@ -45,7 +47,12 @@ def test_param_set(sim):
     param_set = jnp.arange(n_params)
 
     results = esquilax.batch_sim_runner(
-        sim, n_samples, n_steps, 101, show_progress=False, param_samples=param_set
+        sim,
+        n_samples,
+        n_steps,
+        101,
+        show_progress=show_progress,
+        param_samples=param_set,
     )
 
     assert isinstance(results, tuple)
