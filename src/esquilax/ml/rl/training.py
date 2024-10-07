@@ -98,6 +98,7 @@ def generate_samples(
     agent_states: TypedPyTree[Union[AgentState, BatchAgentState]],
     greedy: bool = False,
     show_progress: bool = False,
+    pbar_id: int = 0,
 ) -> Tuple[Trajectory, TEnvState]:
     """
     Run the environment forward generating trajectory and state records
@@ -124,6 +125,9 @@ def generate_samples(
         actions from a greedy policy.
     show_progress
         If ``True`` a progress bar will show execution progress.
+    pbar_id
+        Optional progress bar index. Can be used to print
+        to multiple progress bars.
 
     Returns
     -------
@@ -134,13 +138,16 @@ def generate_samples(
     """
     step_fun = step(agents, env_params, env, greedy=greedy)
 
-    if show_progress:
-        step_fun = jax_tqdm.scan_tqdm(n_env_steps, desc="Step")(step_fun)
-
     k_reset, k_run = jax.random.split(key, 2)
     obs, env_state = env.reset(k_reset, env_params)
+    init = (k_run, env_state, obs, agent_states)
+
+    if show_progress:
+        step_fun = jax_tqdm.scan_tqdm(n_env_steps, desc="Step")(step_fun)
+        init = jax_tqdm.PBar(id=pbar_id, carry=init)
+
     _, (trajectories, env_states) = jax.lax.scan(
-        step_fun, (k_run, env_state, obs, agent_states), jnp.arange(n_env_steps)
+        step_fun, init, jnp.arange(n_env_steps)
     )
     return trajectories, env_states
 
@@ -201,9 +208,9 @@ def batch_generate_samples(
         show_progress=show_progress,
     )
     keys = jax.random.split(key, n_env)
-    trajectories, env_states = jax.vmap(sampling_func, in_axes=(0, None))(
-        keys, agent_states
-    )
+    trajectories, env_states = jax.vmap(
+        lambda k, a, i: sampling_func(k, a, pbar_id=i), in_axes=(0, None, 0)
+    )(keys, agent_states, jnp.arange(n_env))
     return trajectories, env_states
 
 
@@ -363,8 +370,8 @@ def test(
         show_progress=show_progress,
     )
 
-    def sample_trajectories(_k, _agent_states):
-        _trajectories, _states = sampling_func(_k, _agent_states)
+    def sample_trajectories(_k, i, _agent_states):
+        _trajectories, _states = sampling_func(_k, _agent_states, pbar_id=i)
         if return_trajectories:
             return _states, _trajectories
         else:
@@ -377,8 +384,8 @@ def test(
 
     k_sample = jax.random.split(key, n_env)
 
-    states, recorded = jax.vmap(sample_trajectories, in_axes=(0, None))(
-        k_sample, agent_states
+    states, recorded = jax.vmap(sample_trajectories, in_axes=(0, 0, None))(
+        k_sample, jnp.arange(n_env), agent_states
     )
 
     return states, recorded
