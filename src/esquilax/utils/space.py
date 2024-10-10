@@ -2,14 +2,15 @@
 Functions used in spatial transforms
 """
 from itertools import product
-from typing import Union
+from typing import Tuple, Union
 
 import chex
-import jax
 import jax.numpy as jnp
 
 
-def get_bins(x: chex.Array, n_cells: int, width: float) -> chex.Array:
+def get_bins(
+    x: chex.Array, n_cells: int, width: float
+) -> Tuple[chex.Array, chex.Array]:
     """
     Assign co-ordinates to a grid-cell
 
@@ -35,26 +36,41 @@ def get_bins(x: chex.Array, n_cells: int, width: float) -> chex.Array:
     """
     y = jnp.floor_divide(x, width).astype(jnp.int32)
     i = y[:, 0] * n_cells + y[:, 1]
-    return i
+    return y, i
 
 
-def get_cell_neighbours(n_bins: int, topology: str) -> chex.Array:
+def neighbour_indices(x: chex.Array, offsets: chex.Array, n_bins: int) -> chex.Array:
     """
-    Get indices of adjacent cells for each cell on a grid
-
-    Returns array where each row represents a cell
-    and indices of cells adjacent to it given
-    a desired topology.
-
-    .. warning::
-
-       This implementation currently assumes that the
-       space is wrapped at the edges (i.e. on a torus).
+    Apply offsets to co-ordinates to get neighbouring bin indices
 
     Parameters
     ----------
+    x
+        Cell co-ordinates.
+    offsets
+        Index offsets.
     n_bins
-        Number of bins
+        Number of bins across dimensions.
+
+    Returns
+    -------
+    chex.Array
+        Bin indices of neighbouring cells.
+    """
+    offset_x = x + offsets
+    offset_x = offset_x % n_bins
+    return offset_x[:, 0] * n_bins + offset_x[:, 1]
+
+
+def get_neighbours_offsets(topology: str) -> chex.Array:
+    """
+    Get offset co-ords of adjacent cells for a given topology
+
+    Returns array containing co-ordinate offsets of neighbours
+    for a desired topology.
+
+    Parameters
+    ----------
     topology
         Topology of the neighbouring cells, one of:
 
@@ -66,12 +82,10 @@ def get_cell_neighbours(n_bins: int, topology: str) -> chex.Array:
 
     Returns
     -------
-    jax.numpy.ndarray
-        2d array where each row contains a cells index
-        and indices of its neighbours.
+    chex.Array
+        2d array of offsets of neighbours from a central cell
+        (also containing the central cell).
     """
-    n = n_bins**2
-
     if topology == "same-cell":
         offsets = jnp.array([[0, 0]])
     elif topology == "von-neumann":
@@ -84,18 +98,7 @@ def get_cell_neighbours(n_bins: int, topology: str) -> chex.Array:
             "Topology should be one of 'same-cell', 'von-neumann' or 'moore'"
         )
 
-    grid = jnp.arange(n).reshape(n_bins, n_bins)
-    id_x, id_y = jnp.meshgrid(jnp.arange(n_bins), jnp.arange(n_bins))
-
-    def slice(off):
-        off_x, off_y = id_x + off[1], id_y + off[0]
-        off_x, off_y = off_x % n_bins, off_y % n_bins
-        x = grid[off_y, off_x].reshape(-1)
-        return x
-
-    idxs = jax.vmap(slice, out_axes=1)(offsets)
-
-    return idxs
+    return offsets
 
 
 def shortest_vector(a: chex.Array, b: chex.Array, length: float = 1.0) -> chex.Array:
