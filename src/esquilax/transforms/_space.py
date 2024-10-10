@@ -10,15 +10,16 @@ from esquilax import utils
 
 def _sort_agents(
     n_bins: int, width: float, pos: chex.Array, agents: chex.Array
-) -> Tuple[chex.Array, chex.Array, chex.Array, chex.Array, chex.ArrayTree]:
-    idxs = utils.space.get_bins(pos, n_bins, width)
+) -> Tuple[chex.Array, chex.Array, chex.Array, chex.Array, chex.Array, chex.ArrayTree]:
+    co_ords, idxs = utils.space.get_bins(pos, n_bins, width)
     sort_idxs = jnp.argsort(idxs)
     _, bins = utils.graph.index_bins(idxs, n_bins**2)
+    sorted_co_ords = co_ords[sort_idxs]
     sorted_idxs = idxs[sort_idxs]
     sorted_pos = pos[sort_idxs]
     sorted_agents = jax.tree_util.tree_map(lambda y: y[sort_idxs], agents)
 
-    return sort_idxs, bins, sorted_idxs, sorted_pos, sorted_agents
+    return sorted_co_ords, sort_idxs, bins, sorted_idxs, sorted_pos, sorted_agents
 
 
 def spatial(
@@ -204,7 +205,7 @@ def spatial(
     ), "Reduction and default PyTrees should have the same structure"
 
     def spatial_decorator(f: Callable) -> Callable:
-        _topology = utils.space.get_cell_neighbours(n_bins, topology)
+        offsets = utils.space.get_neighbours_offsets(topology)
         keyword_args = utils.functions.get_keyword_args(f)
 
         @partial(jax.jit, static_argnames=keyword_args)
@@ -221,6 +222,7 @@ def spatial(
             same_types = pos_b is None
 
             (
+                co_ords_a,
                 sort_idxs_a,
                 bins_a,
                 sorted_idxs_a,
@@ -235,7 +237,7 @@ def spatial(
                     lambda y: y[sort_idxs_a], agents_b
                 )
             else:
-                _, bins_b, _, sorted_pos_b, sorted_agents_b = _sort_agents(
+                _, _, bins_b, _, sorted_pos_b, sorted_agents_b = _sort_agents(
                     n_bins, width, pos_b, agents_b
                 )
 
@@ -284,8 +286,8 @@ def spatial(
 
                 return _results
 
-            def agent_reduce(k: chex.PRNGKey, i: int, bin_idx: int):
-                nbs = _topology[bin_idx]
+            def agent_reduce(k: chex.PRNGKey, i: int, co_ords: chex.Array):
+                nbs = utils.space.neighbour_indices(co_ords, offsets, n_bins)
                 nb_bins = bins_b[nbs]
                 _keys = jax.random.split(k, nbs.shape[0])
                 _results = jax.vmap(cell, in_axes=(0, None, 0))(_keys, i, nb_bins)
@@ -298,7 +300,7 @@ def spatial(
             n_agents = pos.shape[0]
             keys = jax.random.split(key, n_agents)
             results = jax.vmap(agent_reduce, in_axes=(0, 0, 0))(
-                keys, jnp.arange(n_agents), sorted_idxs_a
+                keys, jnp.arange(n_agents), co_ords_a
             )
 
             inv_sort = jnp.argsort(sort_idxs_a)
@@ -480,7 +482,7 @@ def nearest_neighbour(
     i_range = i_range**2
 
     def nearest_neighbour_decorator(f: Callable) -> Callable:
-        _topology = utils.space.get_cell_neighbours(n_bins, topology)
+        offsets = utils.space.get_neighbours_offsets(topology)
         keyword_args = utils.functions.get_keyword_args(f)
 
         @partial(jax.jit, static_argnames=keyword_args)
@@ -497,6 +499,7 @@ def nearest_neighbour(
             same_types = pos_b is None
 
             (
+                co_ords_a,
                 sort_idxs_a,
                 bins_a,
                 sorted_idxs_a,
@@ -508,7 +511,7 @@ def nearest_neighbour(
                 bins_b = bins_a
                 sorted_pos_b = sorted_pos_a
             else:
-                _, bins_b, _, sorted_pos_b, _ = _sort_agents(
+                _, _, bins_b, _, sorted_pos_b, _ = _sort_agents(
                     n_bins, width, pos_b, agents_b
                 )
 
@@ -545,8 +548,8 @@ def nearest_neighbour(
 
                 return best_idx, best_d
 
-            def agent_reduce(i: int, bin_idx: int) -> int:
-                nbs = _topology[bin_idx]
+            def agent_reduce(i: int, co_ords: chex.Array) -> int:
+                nbs = utils.space.neighbour_indices(co_ords, offsets, n_bins)
                 nb_bins = bins_b[nbs]
                 best_idx, best_d = jax.vmap(cell, in_axes=(None, 0))(i, nb_bins)
                 min_idx = jnp.argmin(best_d)
@@ -556,7 +559,7 @@ def nearest_neighbour(
             n_agents = pos.shape[0]
             keys = jax.random.split(key, n_agents)
             nearest_idxs = jax.vmap(agent_reduce, in_axes=(0, 0))(
-                jnp.arange(n_agents), sorted_idxs_a
+                jnp.arange(n_agents), co_ords_a
             )
             inv_sort = jnp.argsort(sort_idxs_a)
             nearest_idxs = nearest_idxs[inv_sort]
