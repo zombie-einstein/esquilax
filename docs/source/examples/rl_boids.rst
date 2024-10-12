@@ -14,6 +14,7 @@ example, but wrap them up in an environment class
 .. testsetup:: rl_boids
 
    from typing import Callable, Tuple, Any
+   from functools import partial
    import chex
    import evosax
    import flax
@@ -48,10 +49,11 @@ example, but wrap them up in an environment class
            x = flax.linen.tanh(x)
            return x
 
-   @esquilax.transforms.spatial(
-       10,
-       (jnp.add, jnp.add, jnp.add, jnp.add),
-       (0, jnp.zeros(2), 0.0, 0.0),
+   @partial(
+       esquilax.transforms.spatial,
+       n_bins=10,
+       reduction=(jnp.add, jnp.add, jnp.add, jnp.add),
+       default=(0, jnp.zeros(2), 0.0, 0.0),
        include_self=False,
    )
    def observe(_k: chex.PRNGKey, _params: Params, _a: Boid, b: Boid):
@@ -110,8 +112,12 @@ example, but wrap them up in an environment class
        )
        return (pos + d_pos) % 1.0
 
-   @esquilax.transforms.spatial(
-       5, jnp.add, 0.0, include_self=False,
+   @partial(
+       esquilax.transforms.spatial,
+       n_bins=5,
+       reduction=jnp.add,
+       default=0.0,
+       include_self=False,
    )
    def reward(_k: chex.PRNGKey, params: Params, a: chex.Array, b: chex.Array):
        d = esquilax.utils.shortest_distance(a, b, norm=True)
