@@ -31,24 +31,23 @@ def amap(f: typing.Callable) -> typing.Callable:
 
     .. testcode:: amap
 
-       @esquilax.transforms.amap
        def foo(k, p, x):
            return p + x
 
        k = jax.random.PRNGKey(101)
        a = jax.numpy.arange(5)
 
-       foo(k, 2, a)
+       esquilax.transforms.amap(foo)(k, 2, a)
        # [2, 3, 4, 5, 6]
 
     .. doctest:: amap
        :hide:
 
-       >>> foo(k, 2, a).tolist()
+       >>> esquilax.transforms.amap(foo)(k, 2, a).tolist()
        [2, 3, 4, 5, 6]
 
-    Arguments can also be PyTrees, and parameters
-    ``None`` if unused
+    It can also be used as a decortor. Arguments can
+    also be PyTrees, and parameters ``None`` if unused
 
     .. testcode:: amap
 
