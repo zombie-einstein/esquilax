@@ -123,7 +123,7 @@ def test_spatial_w_dict(expected, include_self, topology):
         pos=x,
     )
 
-    expected = {"a": jnp.array(expected["a"]), "b": expected["b"]}
+    expected = {"a": jnp.array(expected["a"]), "b": jnp.array(expected["b"])}
 
     assert jnp.array_equal(results["a"], expected["a"])
     assert jnp.array_equal(results["b"], expected["b"])

@@ -1,4 +1,3 @@
-import typing
 from functools import partial
 from typing import Any, Callable, Optional, Tuple
 
@@ -7,6 +6,7 @@ import jax
 import jax.numpy as jnp
 
 from esquilax import utils
+from esquilax.typing import Default, Reduction
 
 
 def _sort_agents(
@@ -23,12 +23,40 @@ def _sort_agents(
     return sorted_co_ords, sort_idxs, bins, sorted_idxs, sorted_pos, sorted_agents
 
 
+def _argument_checks(
+    pos: chex.Array,
+    pos_b: Optional[chex.Array],
+    agent_a: chex.ArrayTree,
+    agent_b: chex.ArrayTree,
+):
+    assert (
+        pos.ndim == 2 and pos.shape[1] == 2
+    ), f"pos argument should be an array of 2d coordinates, got shape {pos.shape}"
+
+    if pos_b is not None:
+        assert pos.ndim == 2 and pos.shape[1] == 2, (
+            "pos_b argument should be an array of "
+            f"2d coordinates, got shape {pos.shape}"
+        )
+        n_b = pos_b.shape[:1]
+    else:
+        n_b = pos.shape[:1]
+
+    if agent_a is not None:
+        chex.assert_tree_has_only_ndarrays(agent_a)
+        chex.assert_tree_shape_prefix(agent_a, pos.shape[:1])
+
+    if agent_b is not None:
+        chex.assert_tree_has_only_ndarrays(agent_a)
+        chex.assert_tree_shape_prefix(agent_b, n_b)
+
+
 def spatial(
-    f: typing.Callable,
+    f: Callable,
     *,
     n_bins: int,
-    reduction: chex.ArrayTree,
-    default: chex.ArrayTree,
+    reduction: Reduction,
+    default: Default,
     include_self: bool = False,
     topology: str = "moore",
     i_range: Optional[float] = None,
@@ -215,6 +243,7 @@ def spatial(
     i_range = width if i_range is None else i_range
     i_range = i_range**2
 
+    assert n_bins > 0, f"n_bins should be greater than 0, got {f}"
     chex.assert_trees_all_equal_structs(
         reduction, default
     ), "Reduction and default PyTrees should have the same structure"
@@ -233,6 +262,8 @@ def spatial(
         pos_b: Optional[chex.Array] = None,
         **static_kwargs,
     ) -> Any:
+        _argument_checks(pos, pos_b, agents_a, agents_b)
+
         same_types = pos_b is None
 
         (
@@ -270,8 +301,8 @@ def spatial(
                 j: int, carry: Tuple[chex.PRNGKey, Any]
             ) -> Tuple[chex.PRNGKey, Any]:
                 _k, _r = carry
-                pos_b = sorted_pos_b[j]
-                d = utils.space.shortest_distance(pos_a, pos_b, 1.0, norm=False)
+                _pos_b = sorted_pos_b[j]
+                d = utils.space.shortest_distance(pos_a, _pos_b, 1.0, norm=False)
                 return jax.lax.cond(
                     d < i_range, interact, lambda _, _x, _z: (_x, _z), j, _k, _r
                 )
@@ -325,7 +356,7 @@ def nearest_neighbour(
     f: Callable,
     *,
     n_bins: int,
-    default: chex.ArrayTree,
+    default: Default,
     topology: str = "moore",
     i_range: Optional[float] = None,
 ) -> Callable:
@@ -498,6 +529,8 @@ def nearest_neighbour(
         - ``**static_kwargs``: Any arguments required at compile
           time by JAX can be passed as keyword arguments.
     """
+    assert n_bins > 0, f"n_bins should be greater than 0, got {f}"
+
     width = 1.0 / n_bins
     i_range = width if i_range is None else i_range
     i_range = i_range**2
@@ -516,6 +549,8 @@ def nearest_neighbour(
         pos_b: Optional[chex.Array] = None,
         **static_kwargs,
     ) -> Any:
+        _argument_checks(pos, pos_b, agents_a, agents_b)
+
         same_types = pos_b is None
 
         (
