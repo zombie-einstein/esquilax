@@ -113,7 +113,10 @@ def amap(f: typing.Callable) -> typing.Callable:
     keyword_args = utils.functions.get_keyword_args(f)
 
     @partial(jax.jit, static_argnames=keyword_args)
-    def _self(k: chex.PRNGKey, params: Any, x: Any, **static_kwargs) -> Any:
+    def _self(
+        k: chex.PRNGKey, params: Any, x: chex.ArrayTree, **static_kwargs
+    ) -> chex.ArrayTree:
+        chex.assert_tree_has_only_ndarrays(x)
         n = utils.functions.get_size(x)
         keys = jax.random.split(k, n)
         results = jax.vmap(partial(f, **static_kwargs), in_axes=(0, None, 0))(

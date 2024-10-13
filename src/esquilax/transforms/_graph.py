@@ -15,6 +15,13 @@ from esquilax import utils
 from esquilax.typing import Default, Reduction
 
 
+def _check_edges(edges: chex.ArrayTree, edge_idxs: chex.Array):
+    assert edge_idxs.ndim == 2 and edge_idxs.shape[0] == 2, (
+        "edge_idxs should be a 2d array of node " f"index pairs, got {edge_idxs.shape}"
+    )
+    chex.assert_tree_shape_prefix(edges, edge_idxs.shape[1:])
+
+
 def edge_map(f: Callable) -> Callable:
     """
     Map a function over graph edges and related nodes
@@ -111,13 +118,18 @@ def edge_map(f: Callable) -> Callable:
     def _edge_map(
         k: chex.PRNGKey,
         params: Any,
-        starts: Any,
-        ends: Any,
-        edges: Any,
+        starts: chex.ArrayTree,
+        ends: chex.ArrayTree,
+        edges: chex.ArrayTree,
         *,
         edge_idxs: chex.Array,
         **static_kwargs,
-    ) -> Any:
+    ) -> chex.ArrayTree:
+        chex.assert_tree_has_only_ndarrays(starts)
+        chex.assert_tree_has_only_ndarrays(ends)
+        chex.assert_tree_has_only_ndarrays(edge_idxs)
+        _check_edges(edges, edge_idxs)
+
         n = edge_idxs.shape[1]
         keys = jax.random.split(k, n)
         starts = jax.tree_util.tree_map(
@@ -255,13 +267,16 @@ def graph_reduce(
     def _graph_reduce(
         k: chex.PRNGKey,
         params: Any,
-        starts: Any,
-        ends: Any,
-        edges: Any,
+        starts: chex.ArrayTree,
+        ends: chex.ArrayTree,
+        edges: chex.ArrayTree,
         *,
         edge_idxs: chex.Array,
         **static_kwargs,
-    ) -> Any:
+    ) -> chex.ArrayTree:
+        if starts is None:
+            assert n > 0, "If starts is not provided, n should be provided"
+
         n_results = utils.functions.get_size(starts) if n < 0 else n
 
         edge_results = _edge_map(
@@ -369,13 +384,20 @@ def random_edge(
     def _random_edge(
         k: chex.PRNGKey,
         params: Any,
-        starts: Any,
-        ends: Any,
-        edges: Any,
+        starts: chex.ArrayTree,
+        ends: chex.ArrayTree,
+        edges: chex.ArrayTree,
         *,
         edge_idxs: chex.Array,
         **static_kwargs,
-    ):
+    ) -> chex.ArrayTree:
+        if starts is None:
+            assert n > 0, "If starts is not provided, n should be provided"
+        chex.assert_tree_has_only_ndarrays(starts)
+        chex.assert_tree_has_only_ndarrays(ends)
+        chex.assert_tree_has_only_ndarrays(edges)
+        _check_edges(edges, edge_idxs)
+
         n_results = utils.functions.get_size(starts) if n < 0 else n
         bin_counts, bins = utils.graph.index_bins(edge_idxs[0], n_results)
         keys = jax.random.split(k, n_results)
@@ -531,14 +553,21 @@ def highest_weight(f: Callable, *, default: Default, n: int = -1) -> Callable:
     def _highest_weight(
         key: chex.PRNGKey,
         params: Any,
-        starts: Any,
-        ends: Any,
-        edges: Any,
+        starts: chex.ArrayTree,
+        ends: chex.ArrayTree,
+        edges: chex.ArrayTree,
         *,
         edge_idxs: chex.Array,
         weights: chex.Array,
         **static_kwargs,
     ) -> Any:
+        if starts is None:
+            assert n > 0, "If starts is not provided, n should be provided"
+        chex.assert_tree_has_only_ndarrays(starts)
+        chex.assert_tree_has_only_ndarrays(ends)
+        chex.assert_tree_has_only_ndarrays(edges)
+        _check_edges(edges, edge_idxs)
+
         n_results = utils.functions.get_size(starts) if n < 0 else n
         start_nodes = edge_idxs[0]
         bin_counts, bins = utils.graph.index_bins(start_nodes, n_results)
