@@ -12,7 +12,7 @@ import jax
 import jax.numpy as jnp
 
 from esquilax import utils
-from esquilax.typing import Reduction
+from esquilax.typing import Default, Reduction
 
 
 def edge_map(f: Callable) -> Callable:
@@ -137,7 +137,7 @@ def edge_map(f: Callable) -> Callable:
 
 
 def graph_reduce(
-    f: Callable, *, reduction: Reduction, default: chex.ArrayTree, n: int = -1
+    f: Callable, *, reduction: Reduction, default: Default, n: int = -1
 ) -> Callable:
     """
     Map function over graph edges and reduce results to nodes
@@ -285,7 +285,7 @@ def graph_reduce(
 def random_edge(
     f: Callable,
     *,
-    default: Any,
+    default: Default,
     n: int = -1,
 ) -> Callable:
     """
@@ -389,9 +389,9 @@ def random_edge(
             edge = jax.tree_util.tree_map(lambda x: x[j], edges)
             return partial(f, **static_kwargs)(k2, params, start, end, edge)
 
-        def select(_k, i, count: int, bin: chex.Array) -> Any:
+        def select(_k, i, count: int, b: chex.Array) -> Any:
             return jax.lax.cond(
-                count > 0, sample, lambda *_: default, _k, i, bin[0], bin[1]
+                count > 0, sample, lambda *_: default, _k, i, b[0], b[1]
             )
 
         return jax.vmap(select, in_axes=(0, 0, 0, 0))(
@@ -404,7 +404,7 @@ def random_edge(
     return _random_edge
 
 
-def highest_weight(f: Callable, *, default: chex.ArrayTree, n: int = -1) -> Callable:
+def highest_weight(f: Callable, *, default: Default, n: int = -1) -> Callable:
     """
     Map function over graph edges with the highest weights
 

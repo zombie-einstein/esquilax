@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 
 from esquilax import utils
-from esquilax.typing import Reduction
+from esquilax.typing import Default, Reduction
 
 
 def _sort_agents(
@@ -28,7 +28,7 @@ def spatial(
     *,
     n_bins: int,
     reduction: Reduction,
-    default: chex.ArrayTree,
+    default: Default,
     include_self: bool = False,
     topology: str = "moore",
     i_range: Optional[float] = None,
@@ -325,7 +325,7 @@ def nearest_neighbour(
     f: Callable,
     *,
     n_bins: int,
-    default: chex.ArrayTree,
+    default: Default,
     topology: str = "moore",
     i_range: Optional[float] = None,
 ) -> Callable:
