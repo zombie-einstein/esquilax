@@ -95,7 +95,10 @@ def get_neighbours_offsets(topology: str) -> chex.Array:
         offsets = jnp.array(offsets)
     else:
         raise ValueError(
-            "Topology should be one of 'same-cell', 'von-neumann' or 'moore'"
+            (
+                "Topology should be one of 'same-cell', "
+                f"'von-neumann' or 'moore' got {topology}"
+            )
         )
 
     return offsets
