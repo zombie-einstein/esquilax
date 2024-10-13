@@ -1,7 +1,9 @@
 """
 Generic types
 """
-from typing import Collection, TypeVar
+from typing import Callable, Collection, TypeVar, Union
+
+from jax._src.numpy.ufuncs import ufunc
 
 TSimState = TypeVar("TSimState")
 """Generic simulation state"""
@@ -14,3 +16,5 @@ TEnvParams = TypeVar("TEnvParams")
 T = TypeVar("T")
 TypedPyTree = T | Collection[T]
 """PyTree with leaves of a single type"""
+Reduction = TypedPyTree[Union[Callable | ufunc]]
+"""Reduction function(s) type"""

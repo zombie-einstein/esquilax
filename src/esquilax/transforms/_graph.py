@@ -12,6 +12,7 @@ import jax
 import jax.numpy as jnp
 
 from esquilax import utils
+from esquilax.typing import Reduction
 
 
 def edge_map(f: Callable) -> Callable:
@@ -136,7 +137,7 @@ def edge_map(f: Callable) -> Callable:
 
 
 def graph_reduce(
-    f: Callable, *, reduction: chex.ArrayTree, default: chex.ArrayTree, n: int = -1
+    f: Callable, *, reduction: Reduction, default: chex.ArrayTree, n: int = -1
 ) -> Callable:
     """
     Map function over graph edges and reduce results to nodes

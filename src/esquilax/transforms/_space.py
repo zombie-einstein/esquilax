@@ -1,4 +1,3 @@
-import typing
 from functools import partial
 from typing import Any, Callable, Optional, Tuple
 
@@ -7,6 +6,7 @@ import jax
 import jax.numpy as jnp
 
 from esquilax import utils
+from esquilax.typing import Reduction
 
 
 def _sort_agents(
@@ -24,10 +24,10 @@ def _sort_agents(
 
 
 def spatial(
-    f: typing.Callable,
+    f: Callable,
     *,
     n_bins: int,
-    reduction: chex.ArrayTree,
+    reduction: Reduction,
     default: chex.ArrayTree,
     include_self: bool = False,
     topology: str = "moore",
