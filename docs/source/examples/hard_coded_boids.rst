@@ -15,6 +15,7 @@ We first import JAX, `Chex <https://chex.readthedocs.io/en/latest/>`_, and Esqui
 
 .. testcode:: hard_coded_boids
 
+   from functools import partial
    import chex
    import jax
    import jax.numpy as jnp
@@ -54,10 +55,11 @@ Firstly agents observe the state of neighbours within a given range
 
 .. testcode:: hard_coded_boids
 
-   @esquilax.transforms.spatial(
-       5,
-       (jnp.add, jnp.add, jnp.add, jnp.add),
-       (0, jnp.zeros(2), jnp.zeros(2), jnp.zeros(2)),
+   @partial(
+       esquilax.transforms.spatial,
+       n_bins=5,
+       reduction=(jnp.add, jnp.add, jnp.add, jnp.add),
+       default=(0, jnp.zeros(2), jnp.zeros(2), jnp.zeros(2)),
        include_self=False,
    )
    def observe(_key: chex.PRNGKey, params: Params, a: Boid, b: Boid):

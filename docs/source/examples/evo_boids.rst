@@ -40,6 +40,7 @@ First we import JAX, Chex, Flax, and Esquilax
 .. testsetup:: evo_boids
 
    from typing import Callable, Tuple
+   from functools import partial
 
 .. testcode:: evo_boids
 
@@ -85,10 +86,11 @@ add aggregates position and velocity data from neighbours in-range
 
 .. testcode:: evo_boids
 
-   @esquilax.transforms.spatial(
-       10,
-       (jnp.add, jnp.add, jnp.add, jnp.add),
-       (0, jnp.zeros(2), 0.0, 0.0),
+   @partial(
+       esquilax.transforms.spatial,
+       n_bins=10,
+       reduction=(jnp.add, jnp.add, jnp.add, jnp.add),
+       default=(0, jnp.zeros(2), 0.0, 0.0),
        include_self=False,
    )
    def observe(_k: chex.PRNGKey, _params: Params, _a: Boid, b: Boid):
@@ -180,8 +182,12 @@ to calculate reward contributions
 
 .. testcode:: evo_boids
 
-   @esquilax.transforms.spatial(
-       5, jnp.add, 0.0, include_self=False,
+   @partial(
+       esquilax.transforms.spatial,
+       n_bins=5,
+       reduction=jnp.add,
+       default=0.0,
+       include_self=False,
    )
    def reward(_k: chex.PRNGKey, params: Params, a: chex.Array, b: chex.Array):
        d = esquilax.utils.shortest_distance(a, b, norm=True)

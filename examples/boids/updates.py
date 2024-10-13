@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Tuple
 
 import chex
@@ -25,10 +26,11 @@ class Params:
     collision_penalty: float = 0.1
 
 
-@esquilax.transforms.spatial(
-    10,
-    (jnp.add, jnp.add, jnp.add, jnp.add),
-    (0, jnp.zeros(2), 0.0, 0.0),
+@partial(
+    esquilax.transforms.spatial,
+    n_bins=10,
+    reduction=(jnp.add, jnp.add, jnp.add, jnp.add),
+    default=(0, jnp.zeros(2), 0.0, 0.0),
     include_self=False,
 )
 def observe(_k: chex.PRNGKey, _params: Params, a: Boid, b: Boid):
@@ -87,10 +89,11 @@ def move(_key: chex.PRNGKey, _params: Params, x):
     return (pos + d_pos) % 1.0
 
 
-@esquilax.transforms.spatial(
-    5,
-    jnp.add,
-    0.0,
+@partial(
+    esquilax.transforms.spatial,
+    n_bins=5,
+    reduction=jnp.add,
+    default=0.0,
     include_self=False,
 )
 def rewards(_k: chex.PRNGKey, params: Params, a: chex.Array, b: chex.Array):

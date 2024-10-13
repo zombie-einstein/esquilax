@@ -1,3 +1,5 @@
+from functools import partial
+
 import chex
 import jax
 import jax.numpy as jnp
@@ -18,7 +20,9 @@ class SimState:
     weights: chex.Array
 
 
-@esquilax.transforms.graph_reduce((jnp.add, jnp.add), (0, 0.0))
+@partial(
+    esquilax.transforms.graph_reduce, reduction=(jnp.add, jnp.add), default=(0, 0.0)
+)
 def collect_opinions(_, params: Params, my_opinion, your_opinion, weight):
     d = jnp.abs(my_opinion - your_opinion)
     w = params.strength * weight

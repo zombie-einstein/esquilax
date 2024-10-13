@@ -1,3 +1,5 @@
+from functools import partial
+
 import chex
 import jax
 import jax.numpy as jnp
@@ -21,10 +23,11 @@ class Params:
     close_range: float
 
 
-@esquilax.transforms.spatial(
-    5,
-    (jnp.add, jnp.add, jnp.add, jnp.add),
-    (0, jnp.zeros(2), jnp.zeros(2), jnp.zeros(2)),
+@partial(
+    esquilax.transforms.spatial,
+    n_bins=5,
+    reduction=(jnp.add, jnp.add, jnp.add, jnp.add),
+    default=(0, jnp.zeros(2), jnp.zeros(2), jnp.zeros(2)),
     include_self=False,
 )
 def observe(_key: chex.PRNGKey, params: Params, a: Boids, b: Boids):
