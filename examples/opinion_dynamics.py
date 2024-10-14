@@ -24,6 +24,10 @@ class SimState:
     esquilax.transforms.graph_reduce, reduction=(jnp.add, jnp.add), default=(0, 0.0)
 )
 def collect_opinions(_, params: Params, my_opinion, your_opinion, weight):
+    """
+    Observe opinion of neighbouring nodes, add contributions if difference of
+    opinion is below a given threshold
+    """
     d = jnp.abs(my_opinion - your_opinion)
     w = params.strength * weight
 
@@ -35,6 +39,9 @@ def collect_opinions(_, params: Params, my_opinion, your_opinion, weight):
 
 
 def step(_, k, params: Params, state: SimState):
+    """
+    Simulation step
+    """
     n, new_opinions = collect_opinions(
         k, params, state.opinions, state.opinions, state.weights, edge_idxs=state.edges
     )
@@ -51,6 +58,24 @@ def step(_, k, params: Params, state: SimState):
 def opinion_dynamics(
     n_agents: int, n_edges: int, n_steps: int, show_progress: bool = True
 ):
+    """
+    Simulation runner
+
+    Parameters
+    ----------
+    n_agents
+        Number of agents/nodes
+    n_edges
+        Number of graph edges
+    n_steps
+        Number of simulation steps
+    show_progress
+        If ``True`` a simulation progress bar will be displayed
+
+    Returns
+    -------
+    History of node states
+    """
     k = jax.random.PRNGKey(101)
     k, k1, k2, k3 = jax.random.split(k, 4)
 
