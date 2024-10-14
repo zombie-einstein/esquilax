@@ -34,24 +34,28 @@ class Params:
     include_self=False,
 )
 def observe(_k: chex.PRNGKey, _params: Params, a: Boid, b: Boid):
+    """
+    Count neighbours and accumulate their relative velocities and positions
+    """
     dh = esquilax.utils.shortest_vector(a.heading, b.heading, length=2 * jnp.pi)
-    return 1, b.pos, b.speed, dh
+    dx = esquilax.utils.shortest_vector(a.pos, b.pos)
+    return 1, dx, b.speed, dh
 
 
 @esquilax.transforms.amap
 def flatten_observations(_k: chex.PRNGKey, params: Params, observations):
-    boid, n_nb, x_nb, s_nb, h_nb = observations
+    """
+    Convert aggregate neighbour observation into a flattened array
+    """
+    boid, n_nb, dx_nb, s_nb, h_nb = observations
 
     def obs_to_nbs():
-        _x_nb = x_nb / n_nb
+        _dx_nb = dx_nb / n_nb
         _s_nb = s_nb / n_nb
         _h_nb = h_nb / n_nb
 
-        dx = esquilax.utils.shortest_vector(boid.pos, _x_nb)
-
-        d = jnp.sqrt(jnp.sum(dx * dx)) / 0.1
-
-        phi = jnp.arctan2(dx[1], dx[0]) + jnp.pi
+        d = jnp.sqrt(jnp.sum(_dx_nb * _dx_nb)) / 0.1
+        phi = jnp.arctan2(_dx_nb[1], _dx_nb[0]) + jnp.pi
         d_phi = esquilax.utils.shortest_vector(boid.heading, phi, 2 * jnp.pi) / jnp.pi
 
         dh = _h_nb / jnp.pi
@@ -62,12 +66,15 @@ def flatten_observations(_k: chex.PRNGKey, params: Params, observations):
     return jax.lax.cond(
         n_nb > 0,
         obs_to_nbs,
-        lambda: jnp.array([-1.0, 0.0, 0.0, -1.0]),
+        lambda: jnp.array([-1.0, 0.0, 0.0, 0.0]),
     )
 
 
 @esquilax.transforms.amap
 def update_velocity(_k: chex.PRNGKey, params: Params, x: Tuple[chex.Array, Boid]):
+    """
+    Update agent velocities from actions
+    """
     actions, boid = x
     rotation = actions[0] * params.max_rotate * jnp.pi
     acceleration = actions[1] * params.max_accelerate
@@ -84,6 +91,7 @@ def update_velocity(_k: chex.PRNGKey, params: Params, x: Tuple[chex.Array, Boid]
 
 @esquilax.transforms.amap
 def move(_key: chex.PRNGKey, _params: Params, x):
+    """Update agent positions based on current velocity"""
     pos, heading, speed = x
     d_pos = jnp.array([speed * jnp.cos(heading), speed * jnp.sin(heading)])
     return (pos + d_pos) % 1.0
@@ -97,6 +105,7 @@ def move(_key: chex.PRNGKey, _params: Params, x):
     include_self=False,
 )
 def rewards(_k: chex.PRNGKey, params: Params, a: chex.Array, b: chex.Array):
+    """Calculate rewards based on distance from neighbours"""
     d = esquilax.utils.shortest_distance(a, b, norm=True)
 
     reward = jax.lax.cond(
@@ -110,6 +119,8 @@ def rewards(_k: chex.PRNGKey, params: Params, a: chex.Array, b: chex.Array):
 
 
 class MLP(nn.Module):
+    """Simple multi layered network"""
+
     layer_width: int
     actions: int
 

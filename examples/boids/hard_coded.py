@@ -31,6 +31,7 @@ class Params:
     include_self=False,
 )
 def observe(_key: chex.PRNGKey, params: Params, a: Boids, b: Boids):
+    """Aggregate the position and velocities of neighbouring agents"""
     v = esquilax.utils.shortest_vector(b.pos, a.pos)
     d = jnp.sum(v**2)
 
@@ -45,6 +46,9 @@ def observe(_key: chex.PRNGKey, params: Params, a: Boids, b: Boids):
 
 @esquilax.transforms.amap
 def steering(_key: chex.PRNGKey, params: Params, observations):
+    """
+    Calculate new agent velocities from local flock observations
+    """
     x, v, n_nb, x_nb, v_nb, v_cl = observations
 
     def steer():
@@ -62,6 +66,9 @@ def steering(_key: chex.PRNGKey, params: Params, observations):
 
 @esquilax.transforms.amap
 def limit_speed(_key: chex.PRNGKey, params: Params, v: chex.Array):
+    """
+    Limit the upper-lower speed of agents
+    """
     s = jnp.sqrt(jnp.sum(v * v))
 
     v = jax.lax.cond(
@@ -80,11 +87,17 @@ def limit_speed(_key: chex.PRNGKey, params: Params, v: chex.Array):
 
 @esquilax.transforms.amap
 def move(_key: chex.PRNGKey, _params: Params, x):
+    """
+    Update agent positions
+    """
     pos, vel = x
     return (pos + vel) % 1.0
 
 
 def step(_i: int, k: chex.PRNGKey, params: Params, boids: Boids):
+    """
+    Simulation step and aggregate agent positions
+    """
     n_nb, x_nb, v_nb, v_cl = observe(k, params, boids, boids, pos=boids.pos)
 
     vel = steering(k, params, (boids.pos, boids.vel, n_nb, x_nb, v_nb, v_cl))
@@ -95,6 +108,22 @@ def step(_i: int, k: chex.PRNGKey, params: Params, boids: Boids):
 
 
 def boids_sim(n: int, n_steps: int, show_progress: bool = True):
+    """
+    Simulation runner
+
+    Parameters
+    ----------
+    n
+        Number of agents
+    n_steps
+        Number of simulation steps
+    show_progress
+        If ``True`` a simulation progress bar will be shown
+
+    Returns
+    -------
+    History of agent positions
+    """
     k = jax.random.PRNGKey(101)
     k1, k2 = jax.random.split(k)
 
