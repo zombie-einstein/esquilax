@@ -33,7 +33,7 @@ classifiers = [
 python = "^3.10"
 jax = "^0.4.30"
 chex = "^0.1.86"
-jax-tqdm = "^0.3.0"
+jax-tqdm = "^0.3.1"
 evosax = "^0.1.6"
 flax = "^0.8.5"
 
