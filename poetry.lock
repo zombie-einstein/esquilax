@@ -665,13 +665,13 @@ tpu = ["jaxlib (==0.4.33)", "libtpu-nightly (==0.1.dev20240916)", "requests"]
 
 [[package]]
 name = "jax-tqdm"
-version = "0.3.0"
+version = "0.3.1"
 description = "Tqdm progress bar for JAX scans and loops"
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "jax_tqdm-0.3.0-py3-none-any.whl", hash = "sha256:1e603afb127b145ab95e56c1b861207c8ef69872d38ed1dc1984c1cdd6b79d8f"},
-    {file = "jax_tqdm-0.3.0.tar.gz", hash = "sha256:6f3434a1895352db69619e084d5c4b0e77096e75b2b5ef0c81a4667611b64cf1"},
+    {file = "jax_tqdm-0.3.1-py3-none-any.whl", hash = "sha256:a44a650ec150149be1532ee827e9fa34fc3e76dd5df0da13e3e69d912dfd37d5"},
+    {file = "jax_tqdm-0.3.1.tar.gz", hash = "sha256:b76b3ecc334b91f414f52740c28c1aa85bb75eb8d1a0048b5723db3dd4812a1a"},
 ]
 
 [package.dependencies]
@@ -2089,4 +2089,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "0e8b74f9bb1908f92dd9847eb556d3444d87bace0d1190f00409ef5079c5b01e"
+content-hash = "46a295389f0002fbc6e0b61400420ca498f3d60221e9bae2190547846fe68131"
