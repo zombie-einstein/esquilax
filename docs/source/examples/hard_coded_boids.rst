@@ -57,7 +57,7 @@ Firstly agents observe the state of neighbours within a given range
 
    @partial(
        esquilax.transforms.spatial,
-       n_bins=5,
+       i_range=0.2,
        reduction=(jnp.add, jnp.add, jnp.add, jnp.add),
        default=(0, jnp.zeros(2), jnp.zeros(2), jnp.zeros(2)),
        include_self=False,

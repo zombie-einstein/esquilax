@@ -1,4 +1,5 @@
 from functools import partial
+from math import floor
 from typing import Any, Callable, Optional, Tuple
 
 import chex
@@ -54,11 +55,11 @@ def _argument_checks(
 def spatial(
     f: Callable,
     *,
-    n_bins: int,
     reduction: Reduction,
     default: Default,
     include_self: bool = False,
     topology: str = "moore",
+    n_bins: Optional[int] = None,
     i_range: Optional[float] = None,
 ) -> Callable:
     """
@@ -108,7 +109,7 @@ def spatial(
 
        result = esquilax.transforms.spatial(
            foo,
-           n_bins=2,
+           i_range=0.5,
            reduction=jnp.add,
            default=0,
            include_self=False,
@@ -135,7 +136,7 @@ def spatial(
 
        @partial(
            esquilax.transforms.spatial,
-           n_bins=2,
+           i_range=0.5,
            reduction=(jnp.add, jnp.add),
            default=(0, 0),
            include_self=False,
@@ -165,7 +166,7 @@ def spatial(
 
        @partial(
            esquilax.transforms.spatial,
-           n_bins=2,
+           i_range=0.5,
            reduction=jnp.add,
            default=0,
            topology="moore",
@@ -214,12 +215,6 @@ def spatial(
         - ``b``: End agent in the interaction
         - ``**static_kwargs``: Any arguments required at compile
           time by JAX can be passed as keyword arguments.
-    n_bins
-        Number of bins each dimension is subdivided
-        into. Assumes that each dimension contains the
-        same number of cells. Each cell can only interact
-        with adjacent cells, so this value also consequently
-        also controls the number of interactions.
     reduction
         Binary monoidal reduction function, eg ``jax.numpy.add``.
     default
@@ -234,11 +229,26 @@ def spatial(
         cost of fidelity. Should be one of ``"same-cell"``,
         ``"von-neumann"`` or ``"moore"``.
     i_range
-        Optional interaction range. By default, the width
-        of a cell is used as the interaction range, but this
-        can be increased/decreased using ``i_range`` dependent
-        on the use-case.
+        Range at which agents interact. Can be ommited, in which
+        case the width of a cell is used as the interaction range
+        (derived from ``n_bins``), but this can be increased/decreased
+        using ``i_range`` dependent on the use-case.
+    n_bins
+        Optional number of bins each dimension is subdivided
+        into. Assumes that each dimension contains the
+        same number of cells. Each cell can only interact
+        with adjacent cells, so this value also consequently
+        also controls the number of interactions. If not provided
+        the minimum number of bins if derived from ``i_range``.
     """
+    if n_bins is None:
+        assert (
+            i_range is not None
+        ), "If n_bins is not provided, i_range should be provided"
+        n_bins = floor(1.0 / i_range)
+    else:
+        assert n_bins > 0, f"n_bins should be greater than 0, got {f}"
+
     width = 1.0 / n_bins
     i_range = width if i_range is None else i_range
     i_range = i_range**2
@@ -355,9 +365,9 @@ def spatial(
 def nearest_neighbour(
     f: Callable,
     *,
-    n_bins: int,
     default: Default,
     topology: str = "moore",
+    n_bins: Optional[int] = None,
     i_range: Optional[float] = None,
 ) -> Callable:
     """
@@ -406,7 +416,7 @@ def nearest_neighbour(
 
        result = esquilax.transforms.nearest_neighbour(
            foo,
-           n_bins=2,
+           i_range=0.5,
            default=-1,
            topology="moore"
        )(
@@ -432,7 +442,7 @@ def nearest_neighbour(
 
        @partial(
            esquilax.transforms.nearest_neighbour,
-           n_bins=2,
+           i_range=0.5,
            default=(-1, -2),
            topology="moore",
        )
@@ -460,7 +470,7 @@ def nearest_neighbour(
 
        @partial(
            esquilax.transforms.nearest_neighbour,
-           n_bins=2,
+           i_range=0.5,
            default=-1,
            topology="moore",
        )
@@ -484,26 +494,6 @@ def nearest_neighbour(
 
     Parameters
     ----------
-    n_bins
-        Number of bins each dimension is subdivided
-        into. Assumes that each dimension contains the
-        same number of cells. Each cell can only interact
-        with adjacent cells, so this value also consequently
-        also controls the number of interactions.
-    default
-        Default value(s) returned if no-neighbours are in
-        range of an agent.
-    topology
-        Topology of cells, default ``"moore"``. Since cells
-        interact with their neighbours, topologies with
-        fewer neighbours can increase performance at the
-        cost of fidelity. Should be one of ``"same-cell"``,
-        ``"von-neumann"`` or ``"moore"``.
-    i_range
-        Optional interaction range. By default, the width
-        of a cell is used as the interaction range, but this
-        can be increased/decreased using ``i_range`` dependent
-        on the use-case.
     f
         Interaction to apply to in-proximity pairs, should
         have the signature
@@ -528,8 +518,35 @@ def nearest_neighbour(
         - ``b``: End agent in the interaction
         - ``**static_kwargs``: Any arguments required at compile
           time by JAX can be passed as keyword arguments.
+    default
+        Default value(s) returned if no-neighbours are in
+        range of an agent.
+    topology
+        Topology of cells, default ``"moore"``. Since cells
+        interact with their neighbours, topologies with
+        fewer neighbours can increase performance at the
+        cost of fidelity. Should be one of ``"same-cell"``,
+        ``"von-neumann"`` or ``"moore"``.
+    i_range
+        Range at which agents interact. Can be ommited, in which
+        case the width of a cell is used as the interaction range
+        (derived from ``n_bins``), but this can be increased/decreased
+        using ``i_range`` dependent on the use-case.
+    n_bins
+        Optional number of bins each dimension is subdivided
+        into. Assumes that each dimension contains the
+        same number of cells. Each cell can only interact
+        with adjacent cells, so this value also consequently
+        also controls the number of interactions. If not provided
+        the minimum number of bins if derived from ``i_range``.
     """
-    assert n_bins > 0, f"n_bins should be greater than 0, got {f}"
+    if n_bins is None:
+        assert (
+            i_range is not None
+        ), "If n_bins is not provided, i_range should be provided"
+        n_bins = floor(1.0 / i_range)
+    else:
+        assert n_bins > 0, f"n_bins should be greater than 0, got {f}"
 
     width = 1.0 / n_bins
     i_range = width if i_range is None else i_range

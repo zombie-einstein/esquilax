@@ -81,20 +81,25 @@ speed/acceleration and reward values
 Updates
 -------
 
-The observation function simply counts any neighbours, and
-add aggregates position and velocity data from neighbours in-range
+The observation function counts any neighbours, calculates
+relative heading and position, then aggregates contributions
+from neighbours in-range
 
 .. testcode:: evo_boids
 
    @partial(
        esquilax.transforms.spatial,
-       n_bins=10,
+       i_range=0.1,
        reduction=(jnp.add, jnp.add, jnp.add, jnp.add),
        default=(0, jnp.zeros(2), 0.0, 0.0),
        include_self=False,
    )
-   def observe(_k: chex.PRNGKey, _params: Params, _a: Boid, b: Boid):
-       return 1, b.pos, b.speed, b.heading
+   def observe(_k: chex.PRNGKey, _params: Params, a: Boid, b: Boid):
+       dh = esquilax.utils.shortest_vector(
+           a.heading, b.heading, length=2 * jnp.pi
+       )
+       dx = esquilax.utils.shortest_vector(a.pos, b.pos)
+       return 1, dx, b.speed, dh
 
 The next update then aggregates the observations into an observation
 array to be passed to the steering neural network
@@ -106,20 +111,18 @@ array to be passed to the steering neural network
        boid, n_nb, x_nb, s_nb, h_nb = observations
 
        def obs_to_nbs():
-           _x_nb = x_nb / n_nb
+           _dx_nb = x_nb / n_nb
            _s_nb = s_nb / n_nb
            _h_nb = h_nb / n_nb
 
-           dx = esquilax.utils.shortest_vector(boid.pos, _x_nb)
-           d = jnp.sqrt(jnp.sum(dx * dx)) / 0.1
-           phi = jnp.arctan2(dx[1], dx[0]) + jnp.pi
+           d = jnp.sqrt(jnp.sum(_dx_nb * _dx_nb)) / 0.1
+           phi = jnp.arctan2(_dx_nb[1], _dx_nb[0]) + jnp.pi
            d_phi = esquilax.utils.shortest_vector(
                boid.heading, phi, 2 * jnp.pi
            ) / jnp.pi
-           dh = esquilax.utils.shortest_vector(
-               boid.heading, _h_nb, 2 * jnp.pi
-           ) / jnp.pi
-           ds = (_s_nb - boid.speed) / (params.max_speed - params.min_speed)
+           dh = _h_nb / jnp.pi
+           ds = (_s_nb - boid.speed)
+           ds = ds / (params.max_speed - params.min_speed)
 
            return jnp.array([d, d_phi, dh, ds])
 
@@ -129,7 +132,7 @@ array to be passed to the steering neural network
            lambda: jnp.array([-1.0, 0.0, 0.0, 0.0]),
        )
 
-if a boid has neighbours this function then converts the observation
+if a boid has neighbours, this function then converts the observation
 to a vector (in polar co-ordinates) to the average position of the local flock,
 and polar co-ordinates to the average heading of the local flock,
 taking into account the heading of the boid. If there are no neighbours
@@ -184,7 +187,7 @@ to calculate reward contributions
 
    @partial(
        esquilax.transforms.spatial,
-       n_bins=5,
+       i_range=0.1,
        reduction=jnp.add,
        default=0.0,
        include_self=False,
