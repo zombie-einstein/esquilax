@@ -363,7 +363,6 @@ def test_space_fuzzy_same_type(n_agents: int, i_range: float):
     vals_b = jnp.arange(2, n_agents + 2)
     results = transforms.spatial(
         foo,
-        n_bins=10,
         reduction=jnp.add,
         default=0,
         include_self=True,
@@ -413,7 +412,7 @@ def test_space_fuzzy_diff_types(n_agents: int, i_range: float):
     vals_a = jnp.arange(1, n_agents_a + 1)
     vals_b = jnp.arange(2, n_agents_b + 2)
     results = transforms.spatial(
-        foo, n_bins=10, reduction=jnp.add, default=0, topology="moore", i_range=i_range
+        foo, reduction=jnp.add, default=0, topology="moore", i_range=i_range
     )(k, None, vals_a, vals_b, pos=xa, pos_b=xb)
 
     d = jax.vmap(
