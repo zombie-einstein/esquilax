@@ -28,7 +28,7 @@ class Params:
 
 @partial(
     esquilax.transforms.spatial,
-    n_bins=10,
+    i_range=0.1,
     reduction=(jnp.add, jnp.add, jnp.add, jnp.add),
     default=(0, jnp.zeros(2), 0.0, 0.0),
     include_self=False,
@@ -99,7 +99,7 @@ def move(_key: chex.PRNGKey, _params: Params, x):
 
 @partial(
     esquilax.transforms.spatial,
-    n_bins=5,
+    i_range=0.1,
     reduction=jnp.add,
     default=0.0,
     include_self=False,
