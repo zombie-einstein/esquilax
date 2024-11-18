@@ -60,7 +60,7 @@ def neighbour_indices(
         Bin indices of neighbouring cells.
     """
     offset_x = x + offsets
-    return (offset_x[:, 0] % n_bins[0]) * n_bins[0] + (offset_x[:, 1] % n_bins[1])
+    return (offset_x[:, 0] % n_bins[0]) * n_bins[1] + (offset_x[:, 1] % n_bins[1])
 
 
 def get_neighbours_offsets(topology: str) -> chex.Array:
