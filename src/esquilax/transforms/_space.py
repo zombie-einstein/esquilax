@@ -1,6 +1,6 @@
 from functools import partial
-from math import floor
-from typing import Any, Callable, Optional, Tuple
+from math import floor, prod
+from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
 import chex
 import jax
@@ -11,11 +11,11 @@ from esquilax.typing import Default, Reduction
 
 
 def _sort_agents(
-    n_bins: int, width: float, pos: chex.Array, agents: chex.Array
+    n_bins: Tuple[int, int], width: float, pos: chex.Array, agents: chex.Array
 ) -> Tuple[chex.Array, chex.Array, chex.Array, chex.Array, chex.Array, chex.ArrayTree]:
     co_ords, idxs = utils.space.get_bins(pos, n_bins, width)
     sort_idxs = jnp.argsort(idxs)
-    _, bins = utils.graph.index_bins(idxs, n_bins**2)
+    _, bins = utils.graph.index_bins(idxs, prod(n_bins))
     sorted_co_ords = co_ords[sort_idxs]
     sorted_idxs = idxs[sort_idxs]
     sorted_pos = pos[sort_idxs]
@@ -24,7 +24,57 @@ def _sort_agents(
     return sorted_co_ords, sort_idxs, bins, sorted_idxs, sorted_pos, sorted_agents
 
 
-def _argument_checks(
+def _process_parameters(
+    i_range: float,
+    dims: Union[float, Sequence[float]],
+    n_bins: Optional[int | Sequence[int]],
+) -> Tuple[Tuple[int, int], int]:
+    if isinstance(dims, Sequence):
+        assert (
+            len(dims) == 2
+        ), f"2 spatial dimensions should be provided got {len(dims)}"
+
+        if n_bins is not None:
+            assert isinstance(
+                n_bins, Sequence
+            ), f"n_bins should be a sequence if dims is a sequence, got {type(n_bins)}"
+            assert (
+                len(n_bins) == 2
+            ), f"Number of bins should be provided for 2 dimensions, got {len(n_bins)}"
+            assert (
+                n_bins[0] > 0 and n_bins[1] > 0
+            ), f"n_bins should all be greater than 0, got {n_bins}"
+            w1, w2 = dims[0] / n_bins[0], dims[1] / n_bins[1]
+            assert w1 == w2, (
+                "Dimensions of cells should be equal in "
+                f"both dimensions got {w1} and {w2}"
+            )
+            n_bins = (n_bins[0], n_bins[1])
+        else:
+            assert (
+                i_range is not None
+            ), "If n_bins is not provided, i_range should be provided"
+            assert (
+                dims[0] % i_range == 0.0 and dims[1] % i_range == 0.0
+            ), "Dimensions should be a multiple of i_range"
+            n_bins = (dims[0] / i_range, dims[1] / i_range)
+
+        width = dims[0] / n_bins[0]
+
+    else:
+        if n_bins is not None:
+            assert n_bins > 0, f"n_bins should be greater than 0, got {n_bins}"
+            n_bins = (n_bins, n_bins)
+        else:
+            n_bins = floor(dims / i_range)
+            n_bins = (n_bins, n_bins)
+
+        width = dims / n_bins[0]
+
+    return n_bins, width
+
+
+def _check_arguments(
     pos: chex.Array,
     pos_b: Optional[chex.Array],
     agent_a: chex.ArrayTree,
@@ -59,8 +109,9 @@ def spatial(
     default: Default,
     include_self: bool = False,
     topology: str = "moore",
-    n_bins: Optional[int] = None,
+    n_bins: Optional[int | Sequence[int]] = None,
     i_range: Optional[float] = None,
+    dims: Union[float, Sequence[float]] = 1.0,
 ) -> Callable:
     """
     Apply a function between agents based on spatial proximity
@@ -240,20 +291,16 @@ def spatial(
         with adjacent cells, so this value also consequently
         also controls the number of interactions. If not provided
         the minimum number of bins if derived from ``i_range``.
+    dims
+        Dimensions of the space, either a float edge length for a
+        square space, or a pait (tuple or list) of dimension.
+        Default value is a square space of size 1.0.
     """
-    if n_bins is None:
-        assert (
-            i_range is not None
-        ), "If n_bins is not provided, i_range should be provided"
-        n_bins = floor(1.0 / i_range)
-    else:
-        assert n_bins > 0, f"n_bins should be greater than 0, got {f}"
 
-    width = 1.0 / n_bins
+    n_bins, width = _process_parameters(i_range, dims, n_bins)
     i_range = width if i_range is None else i_range
     i_range = i_range**2
 
-    assert n_bins > 0, f"n_bins should be greater than 0, got {f}"
     chex.assert_trees_all_equal_structs(
         reduction, default
     ), "Reduction and default PyTrees should have the same structure"
@@ -272,7 +319,7 @@ def spatial(
         pos_b: Optional[chex.Array] = None,
         **static_kwargs,
     ) -> Any:
-        _argument_checks(pos, pos_b, agents_a, agents_b)
+        _check_arguments(pos, pos_b, agents_a, agents_b)
 
         same_types = pos_b is None
 
@@ -367,8 +414,9 @@ def nearest_neighbour(
     *,
     default: Default,
     topology: str = "moore",
-    n_bins: Optional[int] = None,
+    n_bins: Optional[int | Sequence[int]] = None,
     i_range: Optional[float] = None,
+    dims: Union[float, Sequence[float]] = 1.0,
 ) -> Callable:
     """
     Apply a function between an agent and its closest neighbour
@@ -539,16 +587,12 @@ def nearest_neighbour(
         with adjacent cells, so this value also consequently
         also controls the number of interactions. If not provided
         the minimum number of bins if derived from ``i_range``.
+    dims
+        Dimensions of the space, either a float edge length for a
+        square space, or a pait (tuple or list) of dimension.
+        Default value is a square space of size 1.0.
     """
-    if n_bins is None:
-        assert (
-            i_range is not None
-        ), "If n_bins is not provided, i_range should be provided"
-        n_bins = floor(1.0 / i_range)
-    else:
-        assert n_bins > 0, f"n_bins should be greater than 0, got {f}"
-
-    width = 1.0 / n_bins
+    n_bins, width = _process_parameters(i_range, dims, n_bins)
     i_range = width if i_range is None else i_range
     i_range = i_range**2
 
@@ -566,7 +610,7 @@ def nearest_neighbour(
         pos_b: Optional[chex.Array] = None,
         **static_kwargs,
     ) -> Any:
-        _argument_checks(pos, pos_b, agents_a, agents_b)
+        _check_arguments(pos, pos_b, agents_a, agents_b)
 
         same_types = pos_b is None
 

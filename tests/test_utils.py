@@ -67,7 +67,7 @@ def test_index_bins():
 
 def test_bins():
     x = jnp.array([[0.2, 0.2], [0.2, 0.7], [0.7, 0.2], [0.7, 0.7]])
-    _, b = utils.space.get_bins(x, 2, 0.5)
+    _, b = utils.space.get_bins(x, (2, 2), 0.5)
 
     expected = jnp.arange(4)
 
@@ -101,7 +101,7 @@ def test_bins():
 def test_topology(topology: str, expected: chex.Array):
     idxs = jnp.array([[0, 0], [0, 1], [1, 0], [1, 1]])
     offsets = utils.space.get_neighbours_offsets(topology)
-    x = jax.vmap(lambda a: utils.space.neighbour_indices(a, offsets, 2))(idxs)
+    x = jax.vmap(lambda a: utils.space.neighbour_indices(a, offsets, (2, 2)))(idxs)
     assert jnp.array_equal(x, jnp.array(expected))
 
 
