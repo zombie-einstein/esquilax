@@ -132,7 +132,9 @@ def spatial(
 
        This implementation currently assumes a 2-dimensional
        space with continues boundary conditions (i.e. wrapped
-       on a torus).
+       on a torus). The shape/dimensions of the space
+       can be controlled with the `dims` parameter, by default
+       it is a unit square region.
 
     .. note::
 
@@ -185,7 +187,7 @@ def spatial(
     so in this case agent ``0`` does not have any neighbours in
     its cell, but agents ``1`` and ``2`` observe each other.
 
-    The transform can also be used as a decoratot using
+    The transform can also be used as a decorator using
     :py:meth:`functools.partial`. Arguments and return values
     can be PyTrees or multidimensional arrays. Arguments can
     also be ``None`` if not used
@@ -297,7 +299,10 @@ def spatial(
         same number of cells. Each cell can only interact
         with adjacent cells, so this value also consequently
         also controls the number of interactions. If not provided
-        the minimum number of bins if derived from ``i_range``.
+        the minimum number of bins if derived from ``i_range``. For a square
+        space ``n_bins`` can be a single intiger, or a pair of integers
+        for the number of bins along each cell. The number of cells for
+        each dimension should result in square cells.
     dims
         Dimensions of the space, either a float edge length for a
         square space, or a pait (tuple or list) of dimension.
@@ -439,7 +444,9 @@ def nearest_neighbour(
 
        This implementation currently assumes a 2-dimensional
        space with continues boundary conditions (i.e. wrapped
-       on a torus).
+       on a torus). The shape/dimensions of the space
+       can be controlled with the `dims` parameter, by default
+       it is a unit square region.
 
     .. note::
 
@@ -629,14 +636,15 @@ def nearest_neighbour(
             bins_a,
             sorted_idxs_a,
             sorted_pos_a,
-            _,
+            sorted_agents_a,
         ) = _sort_agents(n_bins, width, pos, agents_a)
 
         if same_types:
             bins_b = bins_a
             sorted_pos_b = sorted_pos_a
+            sorted_agent_b = sorted_agents_a
         else:
-            _, _, bins_b, _, sorted_pos_b, _ = _sort_agents(
+            _, _, bins_b, _, sorted_pos_b, sorted_agent_b = _sort_agents(
                 n_bins, width, pos_b, agents_b
             )
 
@@ -657,14 +665,14 @@ def nearest_neighbour(
 
             if not same_types:
                 best_idx, best_d = jax.lax.fori_loop(
-                    bin_range[0], bin_range[1], inner, (-1, 1.0)
+                    bin_range[0], bin_range[1], inner, (-1, jnp.inf)
                 )
             else:
                 best_idx, best_d = jax.lax.fori_loop(
                     bin_range[0],
                     jnp.minimum(i, bin_range[1]),
                     inner,
-                    (-1, 1.0),
+                    (-1, jnp.inf),
                 )
                 best_idx, best_d = jax.lax.fori_loop(
                     jnp.maximum(i + 1, bin_range[0]),
@@ -684,7 +692,6 @@ def nearest_neighbour(
             return min_idx
 
         n_agents = pos.shape[0]
-        keys = jax.random.split(key, n_agents)
         nearest_idxs = jax.vmap(agent_reduce, in_axes=(0, 0))(
             jnp.arange(n_agents), co_ords_a
         )
@@ -692,7 +699,7 @@ def nearest_neighbour(
         nearest_idxs = nearest_idxs[inv_sort]
 
         def apply(k, a, idx_b):
-            b = jax.tree.map(lambda x: x.at[idx_b].get(), agents_b)
+            b = jax.tree.map(lambda x: x.at[idx_b].get(), sorted_agent_b)
             return partial(f, **static_kwargs)(k, params, a, b)
 
         def check(k, a, idx_b):
@@ -705,6 +712,7 @@ def nearest_neighbour(
                 idx_b,
             )
 
+        keys = jax.random.split(key, n_agents)
         results = jax.vmap(check)(keys, agents_a, nearest_idxs)
 
         return results
