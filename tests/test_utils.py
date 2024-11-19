@@ -1,4 +1,5 @@
-import chex
+from typing import List, Tuple
+
 import jax
 import jax.numpy as jnp
 import pytest
@@ -65,13 +66,19 @@ def test_index_bins():
     assert jnp.array_equal(bins, expected_bins)
 
 
-def test_bins():
+@pytest.mark.parametrize(
+    "n_cells, width, expected",
+    [
+        ((2, 2), 0.5, [0, 1, 2, 3]),
+        ((3, 2), 0.5, [0, 1, 2, 3]),
+        ((2, 3), 0.5, [0, 1, 3, 4]),
+        ((3, 3), 0.3, [0, 2, 6, 8]),
+    ],
+)
+def test_grid_bins(n_cells: Tuple[int, int], width: float, expected: List[int]):
     x = jnp.array([[0.2, 0.2], [0.2, 0.7], [0.7, 0.2], [0.7, 0.7]])
-    _, b = utils.space.get_bins(x, 2, 0.5)
-
-    expected = jnp.arange(4)
-
-    assert jnp.array_equal(b, expected)
+    _, b = utils.space.get_bins(x, n_cells, width)
+    assert jnp.array_equal(b, jnp.array(expected))
 
 
 @pytest.mark.parametrize(
@@ -98,10 +105,30 @@ def test_bins():
         ),
     ],
 )
-def test_topology(topology: str, expected: chex.Array):
+def test_topology(topology: str, expected: List[List[int]]):
     idxs = jnp.array([[0, 0], [0, 1], [1, 0], [1, 1]])
     offsets = utils.space.get_neighbours_offsets(topology)
-    x = jax.vmap(lambda a: utils.space.neighbour_indices(a, offsets, 2))(idxs)
+    x = jax.vmap(lambda a: utils.space.neighbour_indices(a, offsets, (2, 2)))(idxs)
+    assert jnp.array_equal(x, jnp.array(expected))
+
+
+@pytest.mark.parametrize(
+    "n_bins, idx, expected",
+    [
+        ((3, 2), [0, 0], [5, 4, 5, 1, 0, 1, 3, 2, 3]),
+        ((3, 2), [2, 1], [2, 3, 2, 4, 5, 4, 0, 1, 0]),
+        ((2, 3), [0, 0], [5, 3, 4, 2, 0, 1, 5, 3, 4]),
+        ((2, 3), [1, 2], [1, 2, 0, 4, 5, 3, 1, 2, 0]),
+        ((4, 3), [1, 1], [0, 1, 2, 3, 4, 5, 6, 7, 8]),
+        ((4, 1), [1, 0], [0, 0, 0, 1, 1, 1, 2, 2, 2]),
+    ],
+)
+def test_non_square_topology(
+    n_bins: Tuple[int, int], idx: List[int], expected: List[int]
+):
+    idx = jnp.array(idx)
+    offsets = utils.space.get_neighbours_offsets("moore")
+    x = utils.space.neighbour_indices(idx, offsets, n_bins)
     assert jnp.array_equal(x, jnp.array(expected))
 
 

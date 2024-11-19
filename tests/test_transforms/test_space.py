@@ -1,3 +1,5 @@
+from typing import List, Tuple, Union
+
 import chex
 import jax
 import jax.numpy as jnp
@@ -426,3 +428,155 @@ def test_space_fuzzy_diff_types(n_agents: int, i_range: float):
     expected = jnp.sum(expected, axis=1)
 
     assert jnp.array_equal(results, expected)
+
+
+@pytest.mark.parametrize(
+    "x, i_range, dims, expected",
+    [
+        ([[1.0, 0.9], [1.0, 1.1]], 0.4, 2.0, [5, 5]),
+        ([[1.0, 1.9], [1.0, 0.1]], 0.4, 2.0, [5, 5]),
+        ([[1.9, 1.0], [0.1, 1.0]], 0.4, 2.0, [5, 5]),
+        ([[0.25, 0.21], [0.25, 0.3]], 0.1, 0.5, [5, 5]),
+        ([[0.25, 0.04], [0.25, 0.46]], 0.1, 0.5, [5, 5]),
+        ([[0.5, 0.95], [0.5, 1.05]], 0.2, (1.0, 2.0), [5, 5]),
+        ([[0.5, 0.05], [0.5, 1.95]], 0.2, (1.0, 2.0), [5, 5]),
+        ([[0.95, 0.5], [1.05, 0.5]], 0.2, (2.0, 1.0), [5, 5]),
+        ([[0.05, 0.5], [1.95, 0.5]], 0.2, (2.0, 1.0), [5, 5]),
+    ],
+)
+def test_spatial_non_unit_region(
+    x: List[List[float]],
+    i_range: float,
+    dims: Union[float, Tuple[float, float]],
+    expected: List[int],
+):
+    k = jax.random.PRNGKey(101)
+    x = jnp.array(x)
+
+    def foo(_, params, a, b):
+        return params + a + b
+
+    vals = jnp.arange(1, 3)
+    results = transforms.spatial(
+        foo,
+        reduction=jnp.add,
+        default=0,
+        include_self=False,
+        topology="moore",
+        i_range=i_range,
+        dims=dims,
+    )(
+        k,
+        2,
+        vals,
+        vals,
+        pos=x,
+    )
+
+    assert jnp.array_equal(
+        results,
+        jnp.array(expected),
+    )
+
+
+@pytest.mark.parametrize(
+    "i_range, dims, n_bins, expected_n_bins, expected_width, expected_dims",
+    [
+        (None, [1.0, 2.0], [1, 2], (1, 2), 1.0, [1.0, 2.0]),
+        (None, [0.2, 0.1], [2, 1], (2, 1), 0.1, [0.2, 0.1]),
+        (1.0, [1.0, 2.0], None, (1, 2), 1.0, [1.0, 2.0]),
+        (0.1, [0.2, 0.1], None, (2, 1), 0.1, [0.2, 0.1]),
+        (None, 1.0, 2, (2, 2), 0.5, [1.0, 1.0]),
+        (0.1, 1.0, None, (10, 10), 0.1, [1.0, 1.0]),
+    ],
+)
+def test_parameter_processing(
+    i_range: float,
+    dims: float | List[float],
+    n_bins: int | List[int],
+    expected_n_bins: Tuple[int, int],
+    expected_width: float,
+    expected_dims: List[float],
+):
+    n_bins, width, dims = transforms._space._process_parameters(i_range, dims, n_bins)
+
+    assert n_bins == expected_n_bins
+    assert jnp.isclose(width, expected_width)
+    assert jnp.array_equal(dims, jnp.array(expected_dims))
+
+
+def test_parameter_checks():
+    with pytest.raises(
+        AssertionError, match="2 spatial dimensions should be provided got 3"
+    ):
+        transforms._space._process_parameters(0.1, [1.0, 1.0, 1.0], [2, 2, 2])
+
+    with pytest.raises(
+        AssertionError,
+        match="n_bins should be a sequence if dims is a sequence, got <class 'int'>",
+    ):
+        transforms._space._process_parameters(0.1, [1.0, 1.0], 2)
+
+    with pytest.raises(
+        AssertionError,
+        match="Number of bins should be provided for 2 dimensions, got 3",
+    ):
+        transforms._space._process_parameters(0.1, [1.0, 1.0], [2, 2, 2])
+
+    with pytest.raises(
+        AssertionError, match="n_bins should all be greater than 0, got \\[2, 0\\]"
+    ):
+        transforms._space._process_parameters(0.1, [1.0, 1.0], [2, 0])
+
+    with pytest.raises(
+        AssertionError,
+        match="Dimensions of cells should be equal in both dimensions got 0.5 and 1.0",
+    ):
+        transforms._space._process_parameters(0.1, [1.0, 1.0], [2, 1])
+
+    with pytest.raises(
+        AssertionError,
+        match="If n_bins is not provided, i_range should be provided",
+    ):
+        transforms._space._process_parameters(None, [1.0, 1.0], None)
+
+    with pytest.raises(
+        AssertionError,
+        match="Dimensions should be a multiple of i_range",
+    ):
+        transforms._space._process_parameters(0.25, [0.8, 1.0], None)
+
+    with pytest.raises(
+        AssertionError,
+        match="Dimensions should be a multiple of i_range",
+    ):
+        transforms._space._process_parameters(0.25, [1.0, 0.8], None)
+
+
+@pytest.mark.parametrize(
+    "x, i_range, dims, expected",
+    [
+        ([[1.0, 0.95], [1.0, 1.05], [1.0, 0.2]], 0.2, 2.0, [3, 3, -1]),
+        ([[1.0, 1.99], [1.0, 0.05], [1.0, 1.95]], 0.2, 2.0, [4, 3, 4]),
+        ([[0.2, 1.99], [0.2, 0.05], [0.2, 1.95]], 0.2, (0.4, 2.0), [4, 3, 4]),
+        ([[0.39, 1.0], [0.02, 1.0], [0.38, 1.0]], 0.2, (0.4, 2.0), [4, 3, 4]),
+    ],
+)
+def test_nearest_neighbour_non_unit_region(
+    x: List[List[float]],
+    i_range: float,
+    dims: Union[float, Tuple[float, float]],
+    expected: List[int],
+):
+    k = jax.random.PRNGKey(101)
+    x = jnp.array(x)
+
+    def foo(_, params, a, b):
+        return params + a + b
+
+    vals = jnp.arange(x.shape[0])
+    results = transforms.nearest_neighbour(
+        foo, default=-1, topology="moore", i_range=i_range, dims=dims
+    )(k, 2, vals, vals, pos=x)
+
+    assert jnp.array_equal(results, jnp.array(expected))

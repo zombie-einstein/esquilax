@@ -9,7 +9,7 @@ import jax.numpy as jnp
 
 
 def get_bins(
-    x: chex.Array, n_cells: int, width: float
+    x: chex.Array, n_cells: Tuple[int, int], width: float
 ) -> Tuple[chex.Array, chex.Array]:
     """
     Assign co-ordinates to a grid-cell
@@ -25,9 +25,9 @@ def get_bins(
     x
         2d array of co-ordinates, in shape ``[n, 2]``.
     n_cells
-        Number of cells along dimensions.
+        Number of cells along each dimensions.
     width
-        Width of space.
+        Width of a cell.
 
     Returns
     -------
@@ -35,11 +35,13 @@ def get_bins(
         Array of cell indices for each position
     """
     y = jnp.floor_divide(x, width).astype(jnp.int32)
-    i = y[:, 0] * n_cells + y[:, 1]
+    i = y[:, 0] * n_cells[1] + y[:, 1]
     return y, i
 
 
-def neighbour_indices(x: chex.Array, offsets: chex.Array, n_bins: int) -> chex.Array:
+def neighbour_indices(
+    x: chex.Array, offsets: chex.Array, n_bins: Tuple[int, int]
+) -> chex.Array:
     """
     Apply offsets to co-ordinates to get neighbouring bin indices
 
@@ -58,8 +60,7 @@ def neighbour_indices(x: chex.Array, offsets: chex.Array, n_bins: int) -> chex.A
         Bin indices of neighbouring cells.
     """
     offset_x = x + offsets
-    offset_x = offset_x % n_bins
-    return offset_x[:, 0] * n_bins + offset_x[:, 1]
+    return (offset_x[:, 0] % n_bins[0]) * n_bins[1] + (offset_x[:, 1] % n_bins[1])
 
 
 def get_neighbours_offsets(topology: str) -> chex.Array:
@@ -130,7 +131,7 @@ def shortest_vector(a: chex.Array, b: chex.Array, length: float = 1.0) -> chex.A
 def shortest_distance(
     a: Union[float, chex.Array],
     b: Union[float, chex.Array],
-    length: float = 1.0,
+    length: Union[float, chex.Array] = 1.0,
     norm: bool = True,
 ) -> Union[float, chex.Array]:
     """
