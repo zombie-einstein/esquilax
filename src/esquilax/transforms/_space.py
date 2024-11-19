@@ -642,9 +642,9 @@ def nearest_neighbour(
         if same_types:
             bins_b = bins_a
             sorted_pos_b = sorted_pos_a
-            sorted_agent_b = sorted_agents_a
+            sorted_agents_b = jax.tree_util.tree_map(lambda y: y[sort_idxs_a], agents_b)
         else:
-            _, _, bins_b, _, sorted_pos_b, sorted_agent_b = _sort_agents(
+            _, _, bins_b, _, sorted_pos_b, sorted_agents_b = _sort_agents(
                 n_bins, width, pos_b, agents_b
             )
 
@@ -699,7 +699,7 @@ def nearest_neighbour(
         nearest_idxs = nearest_idxs[inv_sort]
 
         def apply(k, a, idx_b):
-            b = jax.tree.map(lambda x: x.at[idx_b].get(), sorted_agent_b)
+            b = jax.tree.map(lambda x: x.at[idx_b].get(), sorted_agents_b)
             return partial(f, **static_kwargs)(k, params, a, b)
 
         def check(k, a, idx_b):
