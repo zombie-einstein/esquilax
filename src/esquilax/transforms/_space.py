@@ -66,6 +66,9 @@ def _process_parameters(
 
     else:
         if n_bins is not None:
+            assert isinstance(
+                n_bins, int
+            ), "n_bins should be an integer value if dims is a float"
             assert n_bins > 0, f"n_bins should be greater than 0, got {n_bins}"
             n_bins = (n_bins, n_bins)
         else:

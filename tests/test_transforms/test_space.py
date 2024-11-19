@@ -477,3 +477,77 @@ def test_spatial_non_unit_region(
         results,
         jnp.array(expected),
     )
+
+
+@pytest.mark.parametrize(
+    "i_range, dims, n_bins, expected_n_bins, expected_width, expected_dims",
+    [
+        (None, [1.0, 2.0], [1, 2], (1, 2), 1.0, [1.0, 2.0]),
+        (None, [0.2, 0.1], [2, 1], (2, 1), 0.1, [0.2, 0.1]),
+        (1.0, [1.0, 2.0], None, (1, 2), 1.0, [1.0, 2.0]),
+        (0.1, [0.2, 0.1], None, (2, 1), 0.1, [0.2, 0.1]),
+        (None, 1.0, 2, (2, 2), 0.5, [1.0, 1.0]),
+        (0.1, 1.0, None, (10, 10), 0.1, [1.0, 1.0]),
+    ],
+)
+def test_parameter_processing(
+    i_range: float,
+    dims: float | List[float],
+    n_bins: int | List[int],
+    expected_n_bins: Tuple[int, int],
+    expected_width: float,
+    expected_dims: List[float],
+):
+    n_bins, width, dims = transforms._space._process_parameters(i_range, dims, n_bins)
+
+    assert n_bins == expected_n_bins
+    assert jnp.isclose(width, expected_width)
+    assert jnp.array_equal(dims, jnp.array(expected_dims))
+
+
+def test_parameter_checks():
+    with pytest.raises(
+        AssertionError, match="2 spatial dimensions should be provided got 3"
+    ):
+        transforms._space._process_parameters(0.1, [1.0, 1.0, 1.0], [2, 2, 2])
+
+    with pytest.raises(
+        AssertionError,
+        match="n_bins should be a sequence if dims is a sequence, got <class 'int'>",
+    ):
+        transforms._space._process_parameters(0.1, [1.0, 1.0], 2)
+
+    with pytest.raises(
+        AssertionError,
+        match="Number of bins should be provided for 2 dimensions, got 3",
+    ):
+        transforms._space._process_parameters(0.1, [1.0, 1.0], [2, 2, 2])
+
+    with pytest.raises(
+        AssertionError, match="n_bins should all be greater than 0, got \\[2, 0\\]"
+    ):
+        transforms._space._process_parameters(0.1, [1.0, 1.0], [2, 0])
+
+    with pytest.raises(
+        AssertionError,
+        match="Dimensions of cells should be equal in both dimensions got 0.5 and 1.0",
+    ):
+        transforms._space._process_parameters(0.1, [1.0, 1.0], [2, 1])
+
+    with pytest.raises(
+        AssertionError,
+        match="If n_bins is not provided, i_range should be provided",
+    ):
+        transforms._space._process_parameters(None, [1.0, 1.0], None)
+
+    with pytest.raises(
+        AssertionError,
+        match="Dimensions should be a multiple of i_range",
+    ):
+        transforms._space._process_parameters(0.25, [0.8, 1.0], None)
+
+    with pytest.raises(
+        AssertionError,
+        match="Dimensions should be a multiple of i_range",
+    ):
+        transforms._space._process_parameters(0.25, [1.0, 0.8], None)
