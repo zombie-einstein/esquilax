@@ -1,5 +1,5 @@
 from functools import partial
-from math import floor, prod
+from math import floor, isclose, prod
 from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
 import chex
@@ -28,7 +28,7 @@ def _process_parameters(
     i_range: float,
     dims: Union[float, Sequence[float]],
     n_bins: Optional[int | Sequence[int]],
-) -> Tuple[Tuple[int, int], int]:
+) -> Tuple[Tuple[int, int], int, chex.Array]:
     if isinstance(dims, Sequence):
         assert (
             len(dims) == 2
@@ -54,12 +54,15 @@ def _process_parameters(
             assert (
                 i_range is not None
             ), "If n_bins is not provided, i_range should be provided"
-            assert (
-                dims[0] % i_range == 0.0 and dims[1] % i_range == 0.0
+            n0 = dims[0] / i_range
+            n1 = dims[1] / i_range
+            assert isclose(round(n0), n0) and isclose(
+                round(n1), n1
             ), "Dimensions should be a multiple of i_range"
-            n_bins = (dims[0] / i_range, dims[1] / i_range)
+            n_bins = (round(n0), round(n1))
 
         width = dims[0] / n_bins[0]
+        dims = jnp.array(dims)
 
     else:
         if n_bins is not None:
@@ -70,8 +73,9 @@ def _process_parameters(
             n_bins = (n_bins, n_bins)
 
         width = dims / n_bins[0]
+        dims = jnp.array([dims, dims])
 
-    return n_bins, width
+    return n_bins, width, dims
 
 
 def _check_arguments(
@@ -297,7 +301,7 @@ def spatial(
         Default value is a square space of size 1.0.
     """
 
-    n_bins, width = _process_parameters(i_range, dims, n_bins)
+    n_bins, width, dims = _process_parameters(i_range, dims, n_bins)
     i_range = width if i_range is None else i_range
     i_range = i_range**2
 
@@ -359,9 +363,11 @@ def spatial(
             ) -> Tuple[chex.PRNGKey, Any]:
                 _k, _r = carry
                 _pos_b = sorted_pos_b[j]
-                d = utils.space.shortest_distance(pos_a, _pos_b, 1.0, norm=False)
+                d = utils.space.shortest_distance(
+                    pos_a, _pos_b, length=dims, norm=False
+                )
                 return jax.lax.cond(
-                    d < i_range, interact, lambda _, _x, _z: (_x, _z), j, _k, _r
+                    d <= i_range, interact, lambda _, _x, _z: (_x, _z), j, _k, _r
                 )
 
             if (not same_types) or include_self:
@@ -592,7 +598,7 @@ def nearest_neighbour(
         square space, or a pait (tuple or list) of dimension.
         Default value is a square space of size 1.0.
     """
-    n_bins, width = _process_parameters(i_range, dims, n_bins)
+    n_bins, width, dims = _process_parameters(i_range, dims, n_bins)
     i_range = width if i_range is None else i_range
     i_range = i_range**2
 
@@ -637,9 +643,11 @@ def nearest_neighbour(
             def inner(j: int, carry: Tuple[int, float]) -> Tuple[int, float]:
                 _best_idx, _best_d = carry
                 _pos_b = sorted_pos_b[j]
-                _d = utils.space.shortest_distance(pos_a, _pos_b, 1.0, norm=False)
+                _d = utils.space.shortest_distance(
+                    pos_a, _pos_b, length=dims, norm=False
+                )
                 return jax.lax.cond(
-                    jnp.logical_and(_d < i_range, _d < _best_d),
+                    jnp.logical_and(_d <= i_range, _d < _best_d),
                     lambda: (j, _d),
                     lambda: (_best_idx, _best_d),
                 )

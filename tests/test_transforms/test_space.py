@@ -1,3 +1,5 @@
+from typing import List, Tuple, Union
+
 import chex
 import jax
 import jax.numpy as jnp
@@ -426,3 +428,52 @@ def test_space_fuzzy_diff_types(n_agents: int, i_range: float):
     expected = jnp.sum(expected, axis=1)
 
     assert jnp.array_equal(results, expected)
+
+
+@pytest.mark.parametrize(
+    "x, i_range, dims, expected",
+    [
+        ([[1.0, 0.9], [1.0, 1.1]], 0.4, 2.0, [5, 5]),
+        ([[1.0, 1.9], [1.0, 0.1]], 0.4, 2.0, [5, 5]),
+        ([[1.9, 1.0], [0.1, 1.0]], 0.4, 2.0, [5, 5]),
+        ([[0.25, 0.21], [0.25, 0.3]], 0.1, 0.5, [5, 5]),
+        ([[0.25, 0.04], [0.25, 0.46]], 0.1, 0.5, [5, 5]),
+        ([[0.5, 0.95], [0.5, 1.05]], 0.2, (1.0, 2.0), [5, 5]),
+        ([[0.5, 0.05], [0.5, 1.95]], 0.2, (1.0, 2.0), [5, 5]),
+        ([[0.95, 0.5], [1.05, 0.5]], 0.2, (2.0, 1.0), [5, 5]),
+        ([[0.05, 0.5], [1.95, 0.5]], 0.2, (2.0, 1.0), [5, 5]),
+    ],
+)
+def test_spatial_non_unit_region(
+    x: List[List[float]],
+    i_range: float,
+    dims: Union[float, Tuple[float, float]],
+    expected: List[int],
+):
+    k = jax.random.PRNGKey(101)
+    x = jnp.array(x)
+
+    def foo(_, params, a, b):
+        return params + a + b
+
+    vals = jnp.arange(1, 3)
+    results = transforms.spatial(
+        foo,
+        reduction=jnp.add,
+        default=0,
+        include_self=False,
+        topology="moore",
+        i_range=i_range,
+        dims=dims,
+    )(
+        k,
+        2,
+        vals,
+        vals,
+        pos=x,
+    )
+
+    assert jnp.array_equal(
+        results,
+        jnp.array(expected),
+    )

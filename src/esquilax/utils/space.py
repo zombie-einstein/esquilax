@@ -35,7 +35,7 @@ def get_bins(
         Array of cell indices for each position
     """
     y = jnp.floor_divide(x, width).astype(jnp.int32)
-    i = y[:, 0] * n_cells[0] + y[:, 1]
+    i = y[:, 0] * n_cells[1] + y[:, 1]
     return y, i
 
 
@@ -131,7 +131,7 @@ def shortest_vector(a: chex.Array, b: chex.Array, length: float = 1.0) -> chex.A
 def shortest_distance(
     a: Union[float, chex.Array],
     b: Union[float, chex.Array],
-    length: float = 1.0,
+    length: Union[float, chex.Array] = 1.0,
     norm: bool = True,
 ) -> Union[float, chex.Array]:
     """
