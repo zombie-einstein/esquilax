@@ -60,6 +60,165 @@ def grid(
     include_self: bool = False,
     topology: str = "moore",
 ) -> Callable:
+    """
+    Apply a function to agents based on a grid neighbourhood
+
+    Applies an interaction function between agents based
+    on their proximity on a 2-dimensional grid.
+
+    .. warning::
+
+       This implementation assumes the grid is wrapped at its
+       boundaries.
+
+    Examples
+    --------
+
+    This example subdivides the space into 2 cells along
+    each dimension (i.e. there are 4 cells total),
+    then sums contributions from neighbours, excluding the
+    active agent
+
+    .. testsetup:: grid
+
+       import esquilax
+       import jax
+       import jax.numpy as jnp
+       from functools import partial
+
+    .. testcode:: grid
+
+       def foo(_k, p, a, b):
+           return p + a + b
+
+       x = jnp.array([[0, 0], [0, 1], [2, 2]])
+       a = jnp.arange(3)
+       k = jax.random.PRNGKey(101)
+
+       result = esquilax.transforms.grid(
+           foo,
+           reduction=jnp.add,
+           default=0,
+           dims=(4, 4),
+           include_self=False,
+       )(
+           k, 2, a, a, co_ords=x
+       )
+       # result = [3, 3, 0]
+
+    .. doctest:: grid
+       :hide:
+
+       >>> result
+       Array([3, 3, 0], dtype=int32)
+
+    in this case the first two agents are next
+    to each other on the grid, but the third
+    has no direct neighbours.
+
+    The transform can also be used as a decorator using
+    :py:meth:`functools.partial`. Arguments and return values
+    can be PyTrees or multidimensional arrays. Arguments can
+    also be ``None`` if not used
+
+    .. testcode:: grid
+
+       @partial(
+           esquilax.transforms.grid,
+           reduction=(jnp.add, jnp.add),
+           default=(0, 0),
+           dims=(4, 4),
+           include_self=False,
+       )
+       def foo(_k, p, _, b):
+           return p + b[0], p + b[1]
+
+       x = jnp.array([[0, 0], [0, 1], [2, 2]])
+       a = jnp.arange(6).reshape(3, 2)
+       k = jax.random.PRNGKey(101)
+
+       foo(k, 2, None, a, co_ords=x)
+       # ([4, 2, 0], [5, 3, 0])
+
+    .. doctest:: grid
+
+       >>> foo(k, 2, None, a, co_ords=x)
+       (Array([4, 2, 0], dtype=int32), Array([5, 3, 0], dtype=int32))
+
+    You can also pass different agent types (i.e. two sets
+    of agents with different positions) using the ``co_ords_b``
+    keyword argument
+
+    .. testcode:: grid
+
+       def foo(_k, p, a, b):
+           return p + a + b
+
+       xa = jnp.array([[0, 0], [2, 2]])
+       xb = jnp.array([[0, 0], [2, 2]])
+       a = jnp.arange(2)
+       b = 2 + a
+       k = jax.random.PRNGKey(101)
+
+       result = esquilax.transforms.grid(
+           foo,
+           reduction=jnp.add,
+           default=0,
+           dims=(4, 4),
+           include_self=False,
+       )(
+           k, 2, a, b, co_ords=xa, co_ords_b=xb
+       )
+       # result = [4, 6]
+
+    .. doctest:: grid
+       :hide:
+
+       >>> result
+       Array([4, 6], dtype=int32)
+
+    Parameters
+    ----------
+    f
+        Interaction to apply to in-proximity pairs, should
+        have the signature
+
+        .. code-block:: python
+
+           def f(
+               k: chex.PRNGKey,
+               params: Any,
+               a: Any,
+               b: Any,
+               **static_kwargs,
+           ):
+               ...
+               return x
+
+        where
+
+        - ``k``: Is a JAX random key
+        - ``params``: Parameters broadcast over all interactions
+        - ``a``: Start agent in the interaction
+        - ``b``: End agent in the interaction
+        - ``**static_kwargs``: Any arguments required at compile
+          time by JAX can be passed as keyword arguments.
+    reduction
+        Binary monoidal reduction function, eg ``jax.numpy.add``.
+    default
+        Default/identity reduction value
+    dims
+        Number of cells along each dimension
+    include_self
+        if ``True`` each agent will include itself in the
+        gathered values.
+    topology
+        Topology of cells, default ``"moore"``. Since cells
+        interact with their neighbours, topologies with
+        fewer neighbours can increase performance at the
+        cost of fidelity. Should be one of ``"same-cell"``,
+        ``"von-neumann"`` or ``"moore"``.
+    """
     offsets = utils.space.get_neighbours_offsets(topology)
     keyword_args = utils.functions.get_keyword_args(f)
 
