@@ -43,7 +43,7 @@ def observe(_k: chex.PRNGKey, _params: Params, a: Boid, b: Boid):
 
 
 @esquilax.transforms.amap
-def flatten_observations(_k: chex.PRNGKey, params: Params, observations):
+def flatten_observations(params: Params, observations):
     """
     Convert aggregate neighbour observation into a flattened array
     """
@@ -71,7 +71,7 @@ def flatten_observations(_k: chex.PRNGKey, params: Params, observations):
 
 
 @esquilax.transforms.amap
-def update_velocity(_k: chex.PRNGKey, params: Params, x: Tuple[chex.Array, Boid]):
+def update_velocity(params: Params, x: Tuple[chex.Array, Boid]):
     """
     Update agent velocities from actions
     """
@@ -90,7 +90,7 @@ def update_velocity(_k: chex.PRNGKey, params: Params, x: Tuple[chex.Array, Boid]
 
 
 @esquilax.transforms.amap
-def move(_key: chex.PRNGKey, _params: Params, x):
+def move(_params: Params, x):
     """Update agent positions based on current velocity"""
     pos, heading, speed = x
     d_pos = jnp.array([speed * jnp.cos(heading), speed * jnp.sin(heading)])

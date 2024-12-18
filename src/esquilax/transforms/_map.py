@@ -1,6 +1,6 @@
 import typing
 from functools import partial
-from typing import Any
+from typing import Any, Optional
 
 import chex
 import jax
@@ -111,17 +111,30 @@ def amap(f: typing.Callable) -> typing.Callable:
     """
 
     keyword_args = utils.functions.get_keyword_args(f)
+    has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
 
     @partial(jax.jit, static_argnames=keyword_args)
     def _self(
-        k: chex.PRNGKey, params: Any, x: chex.ArrayTree, **static_kwargs
+        params: Any,
+        x: chex.ArrayTree,
+        key: Optional[chex.PRNGKey] = None,
+        **static_kwargs,
     ) -> chex.ArrayTree:
         chex.assert_tree_has_only_ndarrays(x)
         n = utils.functions.get_size(x)
-        keys = jax.random.split(k, n)
-        results = jax.vmap(partial(f, **static_kwargs), in_axes=(0, None, 0))(
-            keys, params, x
-        )
+
+        if has_key:
+            assert key is not None, "Expected keyword argument 'key'"
+            keys = jax.random.split(key, n)
+            results = jax.vmap(
+                lambda k, p, a: f(p, a, key=k, **static_kwargs), in_axes=(0, None, 0)
+            )(keys, params, x)
+        else:
+            assert key is None, "Received unexpected 'key' keyword argument"
+            results = jax.vmap(partial(f, **static_kwargs), in_axes=(None, 0))(
+                params, x
+            )
+
         return results
 
     return _self

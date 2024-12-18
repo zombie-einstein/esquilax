@@ -21,30 +21,39 @@ from esquilax import transforms
         ),
     ],
 )
-def test_self(args, expected):
-    key = jax.random.PRNGKey(101)
-
+def test_map(args, expected):
     @transforms.amap
-    def foo(_, x, y):
+    def foo(x, y):
         return tree_util.tree_map(lambda z: x + z, y)
 
-    results = foo(key, 2, args)
+    results = foo(2, args)
 
     chex.assert_trees_all_equal(results, expected)
 
 
-def test_self_with_static():
-    key = jax.random.PRNGKey(101)
-
+def test_map_with_static():
     @transforms.amap
-    def foo(_, x, y, *, func):
+    def foo(x, y, *, func):
         return func(x, y)
 
     def bar(a, b):
         return 3 * (a + b)
 
     args = jnp.arange(5)
-    results = foo(key, 2, args, func=bar)
+    results = foo(2, args, func=bar)
     expected = 3 * (2 + args)
+
+    assert jnp.array_equal(results, expected)
+
+
+def test_map_w_key(rng_key: chex.PRNGKey):
+    @transforms.amap
+    def foo(_x, _y, *, key):
+        return key
+
+    args = jnp.arange(5)
+    results = foo(None, args, key=rng_key)
+
+    expected = jax.random.split(rng_key, 5)
 
     assert jnp.array_equal(results, expected)
