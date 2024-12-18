@@ -319,19 +319,24 @@ def spatial(
 
     offsets = utils.space.get_neighbours_offsets(topology)
     keyword_args = utils.functions.get_keyword_args(f)
+    has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
 
     @partial(jax.jit, static_argnames=keyword_args)
     def _spatial(
-        key: chex.PRNGKey,
         params: Any,
         agents_a: Any,
         agents_b: Any,
         *,
         pos: chex.Array,
         pos_b: Optional[chex.Array] = None,
+        key: Optional[chex.PRNGKey] = None,
         **static_kwargs,
     ) -> Any:
         _check_arguments(pos, pos_b, agents_a, agents_b)
+        if has_key:
+            assert key is not None, "Expected keyword argument 'key'"
+        else:
+            assert key is None, "Received unexpected 'key' keyword argument"
 
         same_types = pos_b is None
 
@@ -353,22 +358,27 @@ def spatial(
                 n_bins, width, pos_b, agents_b
             )
 
-        def cell(k: chex.PRNGKey, i: int, bin_range: chex.Array) -> Any:
+        def cell(k: Optional[chex.PRNGKey], i: int, bin_range: chex.Array) -> Any:
             agent_a = jax.tree_util.tree_map(lambda y: y[i], sorted_agents_a)
             pos_a = sorted_pos_a[i]
 
-            def interact(j: int, _k: chex.PRNGKey, _r: Any) -> Tuple[chex.PRNGKey, Any]:
-                _k, fk = jax.random.split(_k, 2)
+            def interact(
+                j: int, _k: Optional[chex.PRNGKey], _r: Any
+            ) -> Tuple[Optional[chex.PRNGKey], Any]:
                 agent_b = jax.tree_util.tree_map(lambda z: z[j], sorted_agents_b)
-                r = partial(f, **static_kwargs)(fk, params, agent_a, agent_b)
+                if has_key:
+                    _k, fk = jax.random.split(_k, 2)
+                    r = f(params, agent_a, agent_b, key=fk, **static_kwargs)
+                else:
+                    r = f(params, agent_a, agent_b, **static_kwargs)
                 r = jax.tree_util.tree_map(
                     lambda red, a, b: red(a, b), reduction, _r, r
                 )
                 return _k, r
 
             def inner(
-                j: int, carry: Tuple[chex.PRNGKey, Any]
-            ) -> Tuple[chex.PRNGKey, Any]:
+                j: int, carry: Tuple[Optional[chex.PRNGKey], Any]
+            ) -> Tuple[Optional[chex.PRNGKey], Any]:
                 _k, _r = carry
                 _pos_b = sorted_pos_b[j]
                 d = utils.space.shortest_distance(
@@ -398,11 +408,17 @@ def spatial(
 
             return _results
 
-        def agent_reduce(k: chex.PRNGKey, i: chex.Numeric, co_ords: chex.Array):
+        def agent_reduce(
+            k: Optional[chex.PRNGKey], i: chex.Numeric, co_ords: chex.Array
+        ) -> chex.ArrayTree:
             nbs = utils.space.neighbour_indices(co_ords, offsets, n_bins)
             nb_bins = bins_b[nbs]
-            _keys = jax.random.split(k, nbs.shape[0])
-            _results = jax.vmap(cell, in_axes=(0, None, 0))(_keys, i, nb_bins)
+
+            if has_key:
+                _keys = jax.random.split(k, nbs.shape[0])
+                _results = jax.vmap(cell, in_axes=(0, None, 0))(_keys, i, nb_bins)
+            else:
+                _results = jax.vmap(cell, in_axes=(None, None, 0))(None, i, nb_bins)
 
             def red(a, _, c):
                 return jnp.frompyfunc(c, 2, 1).reduce(a)
@@ -410,10 +426,16 @@ def spatial(
             return jax.tree_util.tree_map(red, _results, default, reduction)
 
         n_agents = pos.shape[0]
-        keys = jax.random.split(key, n_agents)
-        results = jax.vmap(agent_reduce, in_axes=(0, 0, 0))(
-            keys, jnp.arange(n_agents), co_ords_a
-        )
+
+        if has_key:
+            keys = jax.random.split(key, n_agents)
+            results = jax.vmap(agent_reduce, in_axes=(0, 0, 0))(
+                keys, jnp.arange(n_agents), co_ords_a
+            )
+        else:
+            results = jax.vmap(agent_reduce, in_axes=(None, 0, 0))(
+                None, jnp.arange(n_agents), co_ords_a
+            )
 
         inv_sort = jnp.argsort(sort_idxs_a)
         results = jax.tree_util.tree_map(lambda y: y[inv_sort], results)

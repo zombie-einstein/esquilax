@@ -25,10 +25,9 @@ from esquilax import transforms
 def test_spatial_interaction(
     expected: chex.Array, include_self: bool, topology: str, i_range: float
 ):
-    k = jax.random.PRNGKey(101)
     x = jnp.array([[0.1, 0.1], [0.7, 0.1], [0.1, 0.7], [0.75, 0.2], [0.75, 0.75]])
 
-    def foo(_, params, a, b):
+    def foo(params, a, b):
         return params + a + b
 
     vals = jnp.arange(5)
@@ -41,7 +40,6 @@ def test_spatial_interaction(
         topology=topology,
         i_range=i_range,
     )(
-        k,
         2,
         vals,
         vals,
@@ -64,10 +62,9 @@ def test_spatial_interaction(
     ],
 )
 def test_spatial_w_array(expected, include_self, topology):
-    k = jax.random.PRNGKey(101)
     x = jnp.array([[0.1, 0.1], [0.7, 0.1], [0.75, 0.2]])
 
-    def foo(_, params, a, b):
+    def foo(params, a, b):
         return params + a + b
 
     agents = jnp.column_stack([jnp.arange(3), jnp.arange(3) + 1])
@@ -81,7 +78,6 @@ def test_spatial_w_array(expected, include_self, topology):
         topology=topology,
         i_range=1.0,
     )(
-        k,
         jnp.ones(2),
         agents,
         agents,
@@ -101,10 +97,9 @@ def test_spatial_w_array(expected, include_self, topology):
     ],
 )
 def test_spatial_w_dict(expected, include_self, topology):
-    k = jax.random.PRNGKey(101)
     x = jnp.array([[0.1, 0.1], [0.7, 0.1], [0.75, 0.2]])
 
-    def foo(_, params, a, b):
+    def foo(params, a, b):
         return {"a": params + a["a"] + b["a"], "b": params + a["b"] + b["b"]}
 
     agents = {"a": jnp.arange(3), "b": jnp.arange(3) + 1}
@@ -118,7 +113,6 @@ def test_spatial_w_dict(expected, include_self, topology):
         topology=topology,
         i_range=1.0,
     )(
-        k,
         2,
         agents,
         agents,
@@ -141,10 +135,9 @@ def test_spatial_w_dict(expected, include_self, topology):
     ],
 )
 def test_spatial_w_tuple(expected, include_self, topology):
-    k = jax.random.PRNGKey(101)
     x = jnp.array([[0.1, 0.1], [0.7, 0.1], [0.75, 0.2]])
 
-    def foo(_, params, a, b):
+    def foo(params, a, b):
         return params + a[0] + b[0], params + a[1] + b[1]
 
     agents = (jnp.arange(3), jnp.arange(3) + 1)
@@ -157,7 +150,7 @@ def test_spatial_w_tuple(expected, include_self, topology):
         include_self=include_self,
         topology=topology,
         i_range=1.0,
-    )(k, 2, agents, agents, pos=x)
+    )(2, agents, agents, pos=x)
 
     expected = (jnp.array(expected[0]), jnp.array(expected[1]))
 
@@ -166,12 +159,11 @@ def test_spatial_w_tuple(expected, include_self, topology):
 
 
 def test_spatial_interaction_w_static():
-    k = jax.random.PRNGKey(101)
     x = jnp.array([[0.1, 0.1], [0.7, 0.1], [0.1, 0.7], [0.75, 0.2], [0.75, 0.75]])
 
     expected = [48, 46, 72, 62, 72]
 
-    def foo(_, params, a, b, *, func):
+    def foo(params, a, b, *, func):
         return func(params, a, b)
 
     def bar(a, b, c):
@@ -186,7 +178,7 @@ def test_spatial_interaction_w_static():
         include_self=False,
         topology="moore",
         i_range=10.0,
-    )(k, 2, vals, vals, func=bar, pos=x)
+    )(2, vals, vals, func=bar, pos=x)
 
     assert jnp.array_equal(
         results,
@@ -194,11 +186,29 @@ def test_spatial_interaction_w_static():
     )
 
 
+def test_spatial_w_rng(rng_key: chex.PRNGKey):
+    x = jnp.array([[0.1, 0.1], [0.1, 0.2]])
+
+    def foo(_p, _a, _b, *, key):
+        return jax.random.choice(key, 10_000, ())
+
+    results = transforms.spatial(
+        foo,
+        reduction=jnp.add,
+        default=0,
+        include_self=False,
+        topology="moore",
+        i_range=0.3,
+    )(None, None, None, key=rng_key, pos=x)
+
+    assert results.shape == (2,)
+    assert results[0] != results[1]
+
+
 def test_spatial_mixed_data():
-    k = jax.random.PRNGKey(101)
     x = jnp.array([[0.1, 0.1], [0.1, 0.7]])
 
-    def foo(_, params, a, b):
+    def foo(params, a, b):
         return params + a + b
 
     vals_a = jnp.arange(1, 3)
@@ -212,7 +222,7 @@ def test_spatial_mixed_data():
         include_self=False,
         topology="von-neumann",
         i_range=10.0,
-    )(k, 2, vals_a, vals_b, pos=x)
+    )(2, vals_a, vals_b, pos=x)
 
     expected = [20, 20]
 
@@ -223,10 +233,9 @@ def test_spatial_mixed_data():
 
 
 def test_spatial_w_none():
-    k = jax.random.PRNGKey(101)
     x = jnp.array([[0.1, 0.1], [0.1, 0.7]])
 
-    def foo(_, params, _a, b):
+    def foo(params, _a, b):
         return params + b
 
     vals_b = jnp.arange(1, 3)
@@ -239,7 +248,7 @@ def test_spatial_w_none():
         include_self=False,
         topology="von-neumann",
         i_range=10.0,
-    )(k, 2, None, vals_b, pos=x)
+    )(2, None, vals_b, pos=x)
 
     expected = [8, 6]
 
@@ -248,7 +257,7 @@ def test_spatial_w_none():
         jnp.array(expected),
     )
 
-    def bar(_, params, a, _b):
+    def bar(params, a, _b):
         return params + a
 
     vals_a = jnp.arange(1, 3)
@@ -261,7 +270,7 @@ def test_spatial_w_none():
         include_self=False,
         topology="von-neumann",
         i_range=10.0,
-    )(k, 2, vals_a, None, pos=x)
+    )(2, vals_a, None, pos=x)
 
     expected = [6, 8]
 
@@ -287,12 +296,10 @@ def test_spatial_w_none():
 def test_mixed_type_spatial_interaction(
     expected: chex.Array, include_self: bool, topology: str, i_range: float
 ):
-    k = jax.random.PRNGKey(101)
-
     xa = jnp.array([[0.1, 0.1], [0.1, 0.7], [0.75, 0.2]])
     xb = jnp.array([[0.7, 0.1], [0.75, 0.75]])
 
-    def foo(_, params, a, b):
+    def foo(params, a, b):
         return params + a + b
 
     vals_a = jnp.arange(3)
@@ -306,7 +313,7 @@ def test_mixed_type_spatial_interaction(
         include_self=include_self,
         topology=topology,
         i_range=i_range,
-    )(k, 2, vals_a, vals_b, pos=xa, pos_b=xb)
+    )(2, vals_a, vals_b, pos=xa, pos_b=xb)
 
     assert jnp.array_equal(
         results,
@@ -358,7 +365,7 @@ def test_space_fuzzy_same_type(n_agents: int, i_range: float):
     k = jax.random.PRNGKey(101)
     x = jax.random.uniform(k, (n_agents, 2))
 
-    def foo(_k, _p, a, b):
+    def foo(_p, a, b):
         return a - b
 
     vals_a = jnp.arange(1, n_agents + 1)
@@ -370,7 +377,7 @@ def test_space_fuzzy_same_type(n_agents: int, i_range: float):
         include_self=True,
         topology="moore",
         i_range=i_range,
-    )(k, None, vals_a, vals_b, pos=x)
+    )(None, vals_a, vals_b, pos=x)
 
     d = jax.vmap(
         lambda a: jax.vmap(lambda b: esquilax.utils.shortest_distance(a, b, norm=True))(
@@ -408,14 +415,14 @@ def test_space_fuzzy_diff_types(n_agents: int, i_range: float):
     xa = jax.random.uniform(ka, (n_agents_a, 2))
     xb = jax.random.uniform(kb, (n_agents_b, 2))
 
-    def foo(_k, _p, a, b):
+    def foo(_p, a, b):
         return a - b
 
     vals_a = jnp.arange(1, n_agents_a + 1)
     vals_b = jnp.arange(2, n_agents_b + 2)
     results = transforms.spatial(
         foo, reduction=jnp.add, default=0, topology="moore", i_range=i_range
-    )(k, None, vals_a, vals_b, pos=xa, pos_b=xb)
+    )(None, vals_a, vals_b, pos=xa, pos_b=xb)
 
     d = jax.vmap(
         lambda a: jax.vmap(lambda b: esquilax.utils.shortest_distance(a, b, norm=True))(
@@ -450,10 +457,9 @@ def test_spatial_non_unit_region(
     dims: Union[float, Tuple[float, float]],
     expected: List[int],
 ):
-    k = jax.random.PRNGKey(101)
     x = jnp.array(x)
 
-    def foo(_, params, a, b):
+    def foo(params, a, b):
         return params + a + b
 
     vals = jnp.arange(1, 3)
@@ -466,7 +472,6 @@ def test_spatial_non_unit_region(
         i_range=i_range,
         dims=dims,
     )(
-        k,
         2,
         vals,
         vals,
