@@ -314,6 +314,116 @@ def grid_local(
     *,
     topology: str = "moore",
 ) -> Callable:
+    """
+    Apply a function to an agent local cells
+
+    Applies an interaction function between an agent and
+    its surrounding cells. The transform slices the
+    cell saround the agent, and passes them
+    to the mapped function.
+
+    .. warning::
+
+       This implementation assumes the grid is wrapped at its
+       boundaries.
+
+    Examples
+    --------
+
+    This example subdivides the space into 3 cells along
+    each dimension (i.e. there are 9 cells total),
+    then applies the function to an agent at ``[1, 1]``
+
+    .. testsetup:: grid
+
+       import esquilax
+       import jax
+       import jax.numpy as jnp
+       from functools import partial
+
+    .. testcode:: grid
+
+       def foo(_k, p, _, grid):
+           # grid here is an array of values
+           return p + grid
+
+       x = jnp.array([[1, 1]])
+       k = jax.random.PRNGKey(101)
+       grid = jnp.arange(9).reshape(3, 3)
+
+       result = esquilax.transforms.grid_local(
+           foo
+       )(
+           k, 2, None, grid, co_ords=x
+       )
+       # result = [[ 2,  3,  4,  5,  6,  7,  8,  9, 10]]
+
+    .. doctest:: grid
+       :hide:
+
+       >>> result
+       Array([[ 2,  3,  4,  5,  6,  7,  8,  9, 10]], dtype=int32)
+
+    The transform can also be used as a decorator using
+    :py:meth:`functools.partial`. Arguments and return values
+    can be PyTrees or multidimensional arrays. Arguments can
+    also be ``None`` if not used
+
+    .. testcode:: grid
+
+       @partial(
+           esquilax.transforms.grid_local,
+           topology="von-neumann",
+       )
+       def foo(_k, p, _, g):
+           return p[0] + g[0], p[1] + g[1]
+
+       x = jnp.array([[1, 1]])
+       k = jax.random.PRNGKey(101)
+       grid = jnp.arange(9).reshape(3, 3)
+       grids = (grid, grid + 1)
+
+       foo(k, (1, 2), None, grids, co_ords=x)
+       # ([[5, 6, 8, 4, 2]], [[ 7,  8, 10,  6,  4]])
+
+    .. doctest:: grid
+
+       # noqa: E501
+       >>> foo(k, (1, 2), None, grids, co_ords=x)
+       (Array([[5, 6, 8, 4, 2]], dtype=int32), Array([[ 7,  8, 10,  6,  4]], dtype=int32))
+
+    Parameters
+    ----------
+    f
+        Interaction to apply to in-proximity pairs, should
+        have the signature
+
+        .. code-block:: python
+
+           def f(
+               k: chex.PRNGKey,
+               params: Any,
+               a: Any,
+               grid: Any,
+               **static_kwargs,
+           ):
+               ...
+               return x
+
+        where
+
+        - ``k``: Is a JAX random key
+        - ``params``: Parameters broadcast over all interactions
+        - ``a``: Agent in the interaction
+        - ``grid``: Pytree of arrays gathered from local cells.
+        - ``**static_kwargs``: Any arguments required at compile
+          time by JAX can be passed as keyword arguments.
+    topology
+        Topology of the local neighbourhood, default ``"moore"``.
+        The cells passed to the interaction function are gathered
+        according to this topology, e.g. a moore neighbourhood
+        will pass an array of size ``(9,)`` to the function.
+    """
     offsets = utils.space.get_neighbours_offsets(topology)
     keyword_args = utils.functions.get_keyword_args(f)
 
