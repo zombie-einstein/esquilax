@@ -307,3 +307,43 @@ def grid(
         return results
 
     return _grid
+
+
+def grid_local(
+    f: Callable,
+    *,
+    topology: str = "moore",
+) -> Callable:
+    offsets = utils.space.get_neighbours_offsets(topology)
+    keyword_args = utils.functions.get_keyword_args(f)
+
+    @partial(jax.jit, static_argnames=keyword_args)
+    def _grid_local(
+        key: chex.PRNGKey,
+        params: Any,
+        agents: chex.ArrayTree,
+        grids: chex.ArrayTree,
+        *,
+        co_ords: chex.Array,
+        **static_kwargs,
+    ) -> chex.ArrayTree:
+        assert grids is not None
+        dims = jax.tree.flatten(grids)[0][0].shape[:2]
+        chex.assert_tree_shape_prefix(grids, dims)
+        dims = jnp.array(dims)
+        _check_arguments(co_ords, None, agents, None)
+
+        def inner(k: chex.PRNGKey, _co_ords: chex.Array, agent):
+            nbs = (_co_ords[jnp.newaxis] + offsets) % dims
+            grid_vals = jax.tree.map(lambda x: x[nbs[:, 0], nbs[:, 1]], grids)
+            result = partial(f, **static_kwargs)(k, params, agent, grid_vals)
+            return result
+
+        n_agents = co_ords.shape[0]
+        keys = jax.random.split(key, n_agents)
+
+        results = jax.vmap(inner, in_axes=(0, 0, 0))(keys, co_ords, agents)
+
+        return results
+
+    return _grid_local
