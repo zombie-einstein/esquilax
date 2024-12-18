@@ -26,8 +26,8 @@ def _sort_agents(
 def _check_arguments(
     idxs: chex.Array,
     idxs_b: Optional[chex.Array],
-    agents_a: chex.ArrayTree,
-    agents_b: chex.ArrayTree,
+    agents_a: Optional[chex.ArrayTree],
+    agents_b: Optional[chex.ArrayTree],
 ) -> None:
     assert (
         idxs.ndim == 2 and idxs.shape[1] == 2
@@ -221,18 +221,24 @@ def grid(
     """
     offsets = utils.space.get_neighbours_offsets(topology)
     keyword_args = utils.functions.get_keyword_args(f)
+    has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
 
     @partial(jax.jit, static_argnames=keyword_args)
     def _grid(
-        key: chex.PRNGKey,
         params: Any,
         agents_a: Any,
         agents_b: Any,
         *,
         co_ords: chex.Array,
         co_ords_b: Optional[chex.Array] = None,
+        key: Optional[chex.PRNGKey] = None,
         **static_kwargs,
     ) -> Any:
+        if has_key:
+            assert key is not None, "Expected keyword argument 'key'"
+        else:
+            assert key is None, "Received unexpected 'key' keyword argument"
+
         _check_arguments(co_ords, co_ords_b, agents_a, agents_b)
         same_types = co_ords_b is None
 
@@ -250,16 +256,21 @@ def grid(
         else:
             _, _, bins_b, _, sorted_agents_b = _sort_agents(dims, co_ords_b, agents_b)
 
-        def cell(k: chex.PRNGKey, i: int, bin_range: chex.Array) -> Any:
+        def cell(k: Optional[chex.PRNGKey], i: int, bin_range: chex.Array) -> Any:
             agent_a = jax.tree_util.tree_map(lambda y: y[i], sorted_agents_a)
 
             def interact(
-                j: int, carry: Tuple[chex.PRNGKey, Any]
-            ) -> Tuple[chex.PRNGKey, Any]:
+                j: int, carry: Tuple[Optional[chex.PRNGKey], Any]
+            ) -> Tuple[Optional[chex.PRNGKey], Any]:
                 _k, _r = carry
-                _k, fk = jax.random.split(_k, 2)
                 agent_b = jax.tree_util.tree_map(lambda z: z[j], sorted_agents_b)
-                r = partial(f, **static_kwargs)(fk, params, agent_a, agent_b)
+
+                if has_key:
+                    _k, fk = jax.random.split(_k, 2)
+                    r = f(params, agent_a, agent_b, key=fk, **static_kwargs)
+                else:
+                    r = f(params, agent_a, agent_b, **static_kwargs)
+
                 r = jax.tree_util.tree_map(
                     lambda red, a, b: red(a, b), reduction, _r, r
                 )
@@ -285,11 +296,17 @@ def grid(
 
             return _results
 
-        def agent_reduce(k: chex.PRNGKey, i: chex.Numeric, _co_ords: chex.Array):
+        def agent_reduce(
+            k: Optional[chex.PRNGKey], i: chex.Numeric, _co_ords: chex.Array
+        ):
             nbs = utils.space.neighbour_indices(_co_ords, offsets, dims)
             nb_bins = bins_b[nbs]
-            _keys = jax.random.split(k, nbs.shape[0])
-            _results = jax.vmap(cell, in_axes=(0, None, 0))(_keys, i, nb_bins)
+
+            if has_key:
+                _keys = jax.random.split(k, nbs.shape[0])
+                _results = jax.vmap(cell, in_axes=(0, None, 0))(_keys, i, nb_bins)
+            else:
+                _results = jax.vmap(cell, in_axes=(None, None, 0))(None, i, nb_bins)
 
             def red(a, _, c):
                 return jnp.frompyfunc(c, 2, 1).reduce(a)
@@ -297,10 +314,17 @@ def grid(
             return jax.tree_util.tree_map(red, _results, default, reduction)
 
         n_agents = co_ords.shape[0]
-        keys = jax.random.split(key, n_agents)
-        results = jax.vmap(agent_reduce, in_axes=(0, 0, 0))(
-            keys, jnp.arange(n_agents), co_ords_a
-        )
+
+        if has_key:
+            keys = jax.random.split(key, n_agents)
+            results = jax.vmap(agent_reduce, in_axes=(0, 0, 0))(
+                keys, jnp.arange(n_agents), co_ords_a
+            )
+        else:
+            results = jax.vmap(agent_reduce, in_axes=(None, 0, 0))(
+                None, jnp.arange(n_agents), co_ords_a
+            )
+
         inv_sort = jnp.argsort(sort_idxs_a)
         results = jax.tree_util.tree_map(lambda y: y[inv_sort], results)
 
@@ -426,33 +450,46 @@ def grid_local(
     """
     offsets = utils.space.get_neighbours_offsets(topology)
     keyword_args = utils.functions.get_keyword_args(f)
+    has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
 
     @partial(jax.jit, static_argnames=keyword_args)
     def _grid_local(
-        key: chex.PRNGKey,
         params: Any,
         agents: chex.ArrayTree,
         grids: chex.ArrayTree,
+        key: Optional[chex.PRNGKey] = None,
         *,
         co_ords: chex.Array,
         **static_kwargs,
     ) -> chex.ArrayTree:
         assert grids is not None
+
+        if has_key:
+            assert key is not None, "Expected keyword argument 'key'"
+        else:
+            assert key is None, "Received unexpected 'key' keyword argument"
+
         dims = jax.tree.flatten(grids)[0][0].shape[:2]
         chex.assert_tree_shape_prefix(grids, dims)
         dims = jnp.array(dims)
         _check_arguments(co_ords, None, agents, None)
 
-        def inner(k: chex.PRNGKey, _co_ords: chex.Array, agent):
+        def inner(k: Optional[chex.PRNGKey], _co_ords: chex.Array, agent):
             nbs = (_co_ords[jnp.newaxis] + offsets) % dims
             grid_vals = jax.tree.map(lambda x: x[nbs[:, 0], nbs[:, 1]], grids)
-            result = partial(f, **static_kwargs)(k, params, agent, grid_vals)
+            if has_key:
+                result = f(params, agent, grid_vals, key=k, **static_kwargs)
+            else:
+                result = f(params, agent, grid_vals, **static_kwargs)
             return result
 
         n_agents = co_ords.shape[0]
-        keys = jax.random.split(key, n_agents)
 
-        results = jax.vmap(inner, in_axes=(0, 0, 0))(keys, co_ords, agents)
+        if has_key:
+            keys = jax.random.split(key, n_agents)
+            results = jax.vmap(inner, in_axes=(0, 0, 0))(keys, co_ords, agents)
+        else:
+            results = jax.vmap(inner, in_axes=(None, 0, 0))(None, co_ords, agents)
 
         return results
 

@@ -18,10 +18,9 @@ from esquilax import transforms
     ],
 )
 def test_grid_transform(expected: chex.Array, include_self: bool, topology: str):
-    k = jax.random.PRNGKey(101)
     x = jnp.array([[0, 0], [1, 1], [2, 0], [1, 2], [0, 0]])
 
-    def foo(_, params, a, b):
+    def foo(params, a, b):
         return params + a + b
 
     vals = jnp.arange(5)
@@ -32,7 +31,7 @@ def test_grid_transform(expected: chex.Array, include_self: bool, topology: str)
         default=0,
         include_self=include_self,
         topology=topology,
-    )(k, 2, vals, vals, co_ords=x)
+    )(2, vals, vals, co_ords=x)
 
     assert jnp.array_equal(results, jnp.array(expected))
 
@@ -49,10 +48,9 @@ def test_grid_transform(expected: chex.Array, include_self: bool, topology: str)
 def test_grid_transform_w_array(
     expected: chex.Array, include_self: bool, topology: str
 ):
-    k = jax.random.PRNGKey(101)
     x = jnp.array([[0, 0], [1, 0], [0, 1]])
 
-    def foo(_, params, a, b):
+    def foo(params, a, b):
         return params + a + b
 
     vals = jnp.column_stack([jnp.arange(3), jnp.arange(3) + 1])
@@ -64,16 +62,15 @@ def test_grid_transform_w_array(
         default=jnp.zeros(2, dtype=int),
         include_self=include_self,
         topology=topology,
-    )(k, 2, vals, vals, co_ords=x)
+    )(2, vals, vals, co_ords=x)
 
     assert jnp.array_equal(results, jnp.array(expected))
 
 
 def test_grid_w_static():
-    k = jax.random.PRNGKey(101)
     x = jnp.array([[0, 0], [1, 1]])
 
-    def foo(_, params, a, b, *, func):
+    def foo(params, a, b, *, func):
         return func(params, a, b)
 
     def bar(a, b, c):
@@ -88,17 +85,16 @@ def test_grid_w_static():
         default=0,
         topology="moore",
         include_self=True,
-    )(k, 2, vals, vals, co_ords=x, func=bar)
+    )(2, vals, vals, co_ords=x, func=bar)
 
     expected = jnp.array([14, 16])
     assert jnp.array_equal(results, expected)
 
 
 def test_grid_w_none():
-    k = jax.random.PRNGKey(101)
     x = jnp.array([[0, 0], [1, 1]])
 
-    def foo(_, params, a, b):
+    def foo(params, a, b):
         return params + a
 
     vals = jnp.arange(2)
@@ -110,12 +106,12 @@ def test_grid_w_none():
         default=0,
         topology="moore",
         include_self=False,
-    )(k, 2, vals, None, co_ords=x)
+    )(2, vals, None, co_ords=x)
 
     expected = jnp.array([8, 12])
     assert jnp.array_equal(results, expected)
 
-    def bar(_, params, a, b):
+    def bar(params, a, b):
         return params + b
 
     results = transforms.grid(
@@ -125,18 +121,17 @@ def test_grid_w_none():
         default=0,
         topology="moore",
         include_self=False,
-    )(k, 2, None, vals, co_ords=x)
+    )(2, None, vals, co_ords=x)
 
     expected = jnp.array([12, 8])
     assert jnp.array_equal(results, expected)
 
 
 def test_grid_w_mixed_types():
-    k = jax.random.PRNGKey(101)
     xa = jnp.array([[0, 0], [1, 1]])
     xb = jnp.array([[1, 0], [0, 1]])
 
-    def foo(_, params, a, b):
+    def foo(params, a, b):
         return params + a + b
 
     vals_a = jnp.arange(2)
@@ -149,17 +144,16 @@ def test_grid_w_mixed_types():
         default=0,
         topology="von-neumann",
         include_self=False,
-    )(k, 2, vals_a, vals_b, co_ords=xa, co_ords_b=xb)
+    )(2, vals_a, vals_b, co_ords=xa, co_ords_b=xb)
 
     expected = jnp.array([18, 22])
     assert jnp.array_equal(results, expected)
 
 
 def test_grid_non_square():
-    k = jax.random.PRNGKey(101)
     x = jnp.array([[0, 0], [1, 1], [0, 2], [0, 1]])
 
-    def foo(_, params, a, b):
+    def foo(params, a, b):
         return params + a + b
 
     vals = jnp.arange(4)
@@ -171,8 +165,31 @@ def test_grid_non_square():
         default=0,
         topology="von-neumann",
         include_self=False,
-    )(k, 2, vals, vals, co_ords=x)
+    )(2, vals, vals, co_ords=x)
 
     expected = jnp.array([9, 12, 11, 24])
 
     assert jnp.array_equal(results, expected)
+
+
+def test_grid_w_random(rng_key: chex.PRNGKey):
+    x = jnp.array([[0, 0], [1, 1]])
+
+    def foo(_params, _a, _b, *, key):
+        return jax.random.choice(
+            key,
+            1_000,
+            (),
+        )
+
+    results = transforms.grid(
+        foo,
+        dims=(2, 2),
+        reduction=jnp.add,
+        default=0,
+        topology="moore",
+        include_self=True,
+    )(2, None, None, co_ords=x, key=rng_key)
+
+    assert results.shape == (2,)
+    assert results[0] != results[1]
