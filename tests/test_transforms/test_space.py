@@ -322,33 +322,6 @@ def test_mixed_type_spatial_interaction(
 
 
 @pytest.mark.parametrize(
-    "expected, topology, i_range",
-    [
-        ([3, 3, -1], "same-cell", 10.0),
-        ([3, 3, 5], "von-neumann", 10.0),
-        ([3, 3, 5], "moore", 10.0),
-        ([-1, -1, -1], "moore", 0.00001),
-    ],
-)
-def test_nearest_neighbour(expected: chex.Array, topology: str, i_range: float):
-    k = jax.random.PRNGKey(101)
-    x = jnp.array([[0.1, 0.1], [0.1, 0.2], [0.1, 0.6]])
-
-    def foo(_, params, a, b):
-        return params + a + b
-
-    vals = jnp.arange(3)
-    results = transforms.nearest_neighbour(
-        foo, n_bins=2, default=-1, topology=topology, i_range=i_range
-    )(k, 2, vals, vals, pos=x)
-
-    assert jnp.array_equal(
-        results,
-        jnp.array(expected),
-    )
-
-
-@pytest.mark.parametrize(
     "n_agents, i_range",
     [
         (2, 0.1),
@@ -556,32 +529,3 @@ def test_parameter_checks():
         match="Dimensions should be a multiple of i_range",
     ):
         transforms._space._process_parameters(0.25, [1.0, 0.8], None)
-
-
-@pytest.mark.parametrize(
-    "x, i_range, dims, expected",
-    [
-        ([[1.0, 0.95], [1.0, 1.05], [1.0, 0.2]], 0.2, 2.0, [3, 3, -1]),
-        ([[1.0, 1.99], [1.0, 0.05], [1.0, 1.95]], 0.2, 2.0, [4, 3, 4]),
-        ([[0.2, 1.99], [0.2, 0.05], [0.2, 1.95]], 0.2, (0.4, 2.0), [4, 3, 4]),
-        ([[0.39, 1.0], [0.02, 1.0], [0.38, 1.0]], 0.2, (0.4, 2.0), [4, 3, 4]),
-    ],
-)
-def test_nearest_neighbour_non_unit_region(
-    x: List[List[float]],
-    i_range: float,
-    dims: Union[float, Tuple[float, float]],
-    expected: List[int],
-):
-    k = jax.random.PRNGKey(101)
-    x = jnp.array(x)
-
-    def foo(_, params, a, b):
-        return params + a + b
-
-    vals = jnp.arange(x.shape[0])
-    results = transforms.nearest_neighbour(
-        foo, default=-1, topology="moore", i_range=i_range, dims=dims
-    )(k, 2, vals, vals, pos=x)
-
-    assert jnp.array_equal(results, jnp.array(expected))

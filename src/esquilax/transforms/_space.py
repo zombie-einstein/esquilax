@@ -636,19 +636,24 @@ def nearest_neighbour(
 
     offsets = utils.space.get_neighbours_offsets(topology)
     keyword_args = utils.functions.get_keyword_args(f)
+    has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
 
     @partial(jax.jit, static_argnames=keyword_args)
     def _nearest_neighbour(
-        key: chex.PRNGKey,
         params: Any,
         agents_a: Any,
         agents_b: Any,
         *,
         pos: chex.Array,
         pos_b: Optional[chex.Array] = None,
+        key: Optional[chex.PRNGKey] = None,
         **static_kwargs,
     ) -> Any:
         _check_arguments(pos, pos_b, agents_a, agents_b)
+        if has_key:
+            assert key is not None, "Expected keyword argument 'key'"
+        else:
+            assert key is None, "Received unexpected 'key' keyword argument"
 
         same_types = pos_b is None
 
@@ -720,11 +725,19 @@ def nearest_neighbour(
         inv_sort = jnp.argsort(sort_idxs_a)
         nearest_idxs = nearest_idxs[inv_sort]
 
-        def apply(k, a, idx_b):
+        def apply(
+            k: Optional[chex.PRNGKey], a: chex.ArrayTree, idx_b: chex.Numeric
+        ) -> chex.ArrayTree:
             b = jax.tree.map(lambda x: x.at[idx_b].get(), sorted_agents_b)
-            return partial(f, **static_kwargs)(k, params, a, b)
+            if has_key:
+                result = f(params, a, b, key=k, **static_kwargs)
+            else:
+                result = f(params, a, b, **static_kwargs)
+            return result
 
-        def check(k, a, idx_b):
+        def check(
+            k: Optional[chex.PRNGKey], a: chex.ArrayTree, idx_b: chex.Numeric
+        ) -> chex.ArrayTree:
             return jax.lax.cond(
                 idx_b < 0,
                 lambda *_: default,
@@ -734,8 +747,13 @@ def nearest_neighbour(
                 idx_b,
             )
 
-        keys = jax.random.split(key, n_agents)
-        results = jax.vmap(check)(keys, agents_a, nearest_idxs)
+        if has_key:
+            keys = jax.random.split(key, n_agents)
+            results = jax.vmap(check)(keys, agents_a, nearest_idxs)
+        else:
+            results = jax.vmap(check, in_axes=(None, 0, 0))(
+                None, agents_a, nearest_idxs
+            )
 
         return results
 
