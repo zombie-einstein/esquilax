@@ -28,7 +28,7 @@ def _process_parameters(
     i_range: float,
     dims: Union[float, Sequence[float]],
     n_bins: Optional[int | Sequence[int]],
-) -> Tuple[Tuple[int, int], int, chex.Array]:
+) -> Tuple[Tuple[int, int], float, chex.Array]:
     if isinstance(dims, Sequence):
         assert (
             len(dims) == 2
@@ -86,7 +86,7 @@ def _check_arguments(
     pos_b: Optional[chex.Array],
     agent_a: chex.ArrayTree,
     agent_b: chex.ArrayTree,
-):
+) -> None:
     assert (
         pos.ndim == 2 and pos.shape[1] == 2
     ), f"pos argument should be an array of 2d coordinates, got shape {pos.shape}"
@@ -105,7 +105,7 @@ def _check_arguments(
         chex.assert_tree_shape_prefix(agent_a, pos.shape[:1])
 
     if agent_b is not None:
-        chex.assert_tree_has_only_ndarrays(agent_a)
+        chex.assert_tree_has_only_ndarrays(agent_b)
         chex.assert_tree_shape_prefix(agent_b, n_b)
 
 
@@ -398,7 +398,7 @@ def spatial(
 
             return _results
 
-        def agent_reduce(k: chex.PRNGKey, i: int, co_ords: chex.Array):
+        def agent_reduce(k: chex.PRNGKey, i: chex.Numeric, co_ords: chex.Array):
             nbs = utils.space.neighbour_indices(co_ords, offsets, n_bins)
             nb_bins = bins_b[nbs]
             _keys = jax.random.split(k, nbs.shape[0])
@@ -683,7 +683,7 @@ def nearest_neighbour(
 
             return best_idx, best_d
 
-        def agent_reduce(i: int, co_ords: chex.Array) -> int:
+        def agent_reduce(i: chex.Numeric, co_ords: chex.Array) -> chex.Numeric:
             nbs = utils.space.neighbour_indices(co_ords, offsets, n_bins)
             nb_bins = bins_b[nbs]
             best_idx, best_d = jax.vmap(cell, in_axes=(None, 0))(i, nb_bins)
