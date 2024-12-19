@@ -30,7 +30,7 @@ class Params:
     default=(0, jnp.zeros(2), jnp.zeros(2), jnp.zeros(2)),
     include_self=False,
 )
-def observe(_key: chex.PRNGKey, params: Params, a: Boids, b: Boids):
+def observe(params: Params, a: Boids, b: Boids):
     """Aggregate the position and velocities of neighbouring agents"""
     v = esquilax.utils.shortest_vector(b.pos, a.pos)
     d = jnp.sum(v**2)
@@ -94,11 +94,11 @@ def move(_params: Params, x):
     return (pos + vel) % 1.0
 
 
-def step(_i: int, k: chex.PRNGKey, params: Params, boids: Boids):
+def step(_i: int, _k: chex.PRNGKey, params: Params, boids: Boids):
     """
     Simulation step and aggregate agent positions
     """
-    n_nb, x_nb, v_nb, v_cl = observe(k, params, boids, boids, pos=boids.pos)
+    n_nb, x_nb, v_nb, v_cl = observe(params, boids, boids, pos=boids.pos)
 
     vel = steering(params, (boids.pos, boids.vel, n_nb, x_nb, v_nb, v_cl))
     vel = limit_speed(params, vel)

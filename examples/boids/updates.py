@@ -33,7 +33,7 @@ class Params:
     default=(0, jnp.zeros(2), 0.0, 0.0),
     include_self=False,
 )
-def observe(_k: chex.PRNGKey, _params: Params, a: Boid, b: Boid):
+def observe(_params: Params, a: Boid, b: Boid):
     """
     Count neighbours and accumulate their relative velocities and positions
     """
@@ -104,7 +104,7 @@ def move(_params: Params, x):
     default=0.0,
     include_self=False,
 )
-def rewards(_k: chex.PRNGKey, params: Params, a: chex.Array, b: chex.Array):
+def rewards(params: Params, a: chex.Array, b: chex.Array):
     """Calculate rewards based on distance from neighbours"""
     d = esquilax.utils.shortest_distance(a, b, norm=True)
 
