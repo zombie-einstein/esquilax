@@ -160,12 +160,11 @@ def spatial(
 
     .. testcode:: spatial
 
-       def foo(_k, p, a, b):
+       def foo(p, a, b):
            return p + a + b
 
        x = jnp.array([[0.1, 0.1], [0.6, 0.6], [0.7, 0.7]])
        a = jnp.arange(3)
-       k = jax.random.PRNGKey(101)
 
        result = esquilax.transforms.spatial(
            foo,
@@ -174,7 +173,7 @@ def spatial(
            default=0,
            include_self=False,
        )(
-           k, 2, a, a, pos=x
+           2, a, a, pos=x
        )
        # result = [0, 5, 5]
 
@@ -202,20 +201,19 @@ def spatial(
            include_self=False,
            topology="same-cell",
        )
-       def foo(_k, p, _, b):
+       def foo(p, _, b):
            return p + b[0],  p + b[1]
 
        x = jnp.array([[0.1, 0.1], [0.6, 0.6], [0.7, 0.7]])
        a = jnp.arange(6).reshape(3, 2)
-       k = jax.random.PRNGKey(101)
 
-       foo(k, 2, None, a, pos=x)
-       # ([0, 6, 4], [0, 7, 5])
+       result = foo(2, None, a, pos=x)
+       # result = ([0, 6, 4], [0, 7, 5])
 
     .. doctest:: spatial
        :hide:
 
-       >>> foo(k, 2, None, a, pos=x)
+       >>> result
        (Array([0, 6, 4], dtype=int32), Array([0, 7, 5], dtype=int32))
 
     You can also pass different agent types (i.e. two sets
@@ -231,7 +229,7 @@ def spatial(
            default=0,
            topology="moore",
        )
-       def foo(_, params, a, b):
+       def foo(params, a, b):
            return params + a + b
 
        # A consists of 3 agents, and b 2 agents
@@ -240,14 +238,33 @@ def spatial(
        vals_a = jnp.arange(3)
        vals_b = jnp.arange(1, 3)
 
-       foo(k, 2, vals_a, vals_b, pos=xa, pos_b=xb)
-       # [22, 10, 17]
+       result = foo(2, vals_a, vals_b, pos=xa, pos_b=xb)
+       # result = [22, 10, 17]
 
     .. doctest:: spatial
        :hide:
 
-       >>> foo(k, 2, vals_a, vals_b, pos=xa, pos_b=xb)
+       >>> result
        Array([22, 10, 17], dtype=int32)
+
+    Random keys can be passed to the wrapped function
+    by including the ``key`` keyword argument
+
+    .. testcode:: spatial
+
+       def foo(_p, _a, _b, *, key):
+           return jax.random.choice(key, 100, ())
+
+       k = jax.random.PRNGKey(101)
+       result = esquilax.transforms.spatial(
+           foo,
+           i_range=0.5,
+           reduction=jnp.add,
+           default=0,
+           include_self=False,
+       )(
+           None, None, None, pos=x, key=k
+       )
 
     Parameters
     ----------
@@ -258,7 +275,6 @@ def spatial(
         .. code-block:: python
 
            def f(
-               k: chex.PRNGKey,
                params: Any,
                a: Any,
                b: Any,
@@ -269,12 +285,14 @@ def spatial(
 
         where
 
-        - ``k``: Is a JAX random key
         - ``params``: Parameters broadcast over all interactions
         - ``a``: Start agent in the interaction
         - ``b``: End agent in the interaction
         - ``**static_kwargs``: Any arguments required at compile
           time by JAX can be passed as keyword arguments.
+
+        JAX random keys can be passed to the function by including
+        the ``key`` keyword argument.
     reduction
         Binary monoidal reduction function, eg ``jax.numpy.add``.
     default
@@ -319,19 +337,21 @@ def spatial(
 
     offsets = utils.space.get_neighbours_offsets(topology)
     keyword_args = utils.functions.get_keyword_args(f)
+    has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
 
     @partial(jax.jit, static_argnames=keyword_args)
     def _spatial(
-        key: chex.PRNGKey,
         params: Any,
         agents_a: Any,
         agents_b: Any,
         *,
         pos: chex.Array,
         pos_b: Optional[chex.Array] = None,
+        key: Optional[chex.PRNGKey] = None,
         **static_kwargs,
     ) -> Any:
         _check_arguments(pos, pos_b, agents_a, agents_b)
+        utils.functions.check_key(has_key, key)
 
         same_types = pos_b is None
 
@@ -353,22 +373,27 @@ def spatial(
                 n_bins, width, pos_b, agents_b
             )
 
-        def cell(k: chex.PRNGKey, i: int, bin_range: chex.Array) -> Any:
+        def cell(k: Optional[chex.PRNGKey], i: int, bin_range: chex.Array) -> Any:
             agent_a = jax.tree_util.tree_map(lambda y: y[i], sorted_agents_a)
             pos_a = sorted_pos_a[i]
 
-            def interact(j: int, _k: chex.PRNGKey, _r: Any) -> Tuple[chex.PRNGKey, Any]:
-                _k, fk = jax.random.split(_k, 2)
+            def interact(
+                j: int, _k: Optional[chex.PRNGKey], _r: Any
+            ) -> Tuple[Optional[chex.PRNGKey], Any]:
                 agent_b = jax.tree_util.tree_map(lambda z: z[j], sorted_agents_b)
-                r = partial(f, **static_kwargs)(fk, params, agent_a, agent_b)
+                if has_key:
+                    _k, fk = jax.random.split(_k, 2)
+                    r = f(params, agent_a, agent_b, key=fk, **static_kwargs)
+                else:
+                    r = f(params, agent_a, agent_b, **static_kwargs)
                 r = jax.tree_util.tree_map(
                     lambda red, a, b: red(a, b), reduction, _r, r
                 )
                 return _k, r
 
             def inner(
-                j: int, carry: Tuple[chex.PRNGKey, Any]
-            ) -> Tuple[chex.PRNGKey, Any]:
+                j: int, carry: Tuple[Optional[chex.PRNGKey], Any]
+            ) -> Tuple[Optional[chex.PRNGKey], Any]:
                 _k, _r = carry
                 _pos_b = sorted_pos_b[j]
                 d = utils.space.shortest_distance(
@@ -398,11 +423,17 @@ def spatial(
 
             return _results
 
-        def agent_reduce(k: chex.PRNGKey, i: chex.Numeric, co_ords: chex.Array):
+        def agent_reduce(
+            k: Optional[chex.PRNGKey], i: chex.Numeric, co_ords: chex.Array
+        ) -> chex.ArrayTree:
             nbs = utils.space.neighbour_indices(co_ords, offsets, n_bins)
             nb_bins = bins_b[nbs]
-            _keys = jax.random.split(k, nbs.shape[0])
-            _results = jax.vmap(cell, in_axes=(0, None, 0))(_keys, i, nb_bins)
+
+            if has_key:
+                _keys = jax.random.split(k, nbs.shape[0])
+                _results = jax.vmap(cell, in_axes=(0, None, 0))(_keys, i, nb_bins)
+            else:
+                _results = jax.vmap(cell, in_axes=(None, None, 0))(None, i, nb_bins)
 
             def red(a, _, c):
                 return jnp.frompyfunc(c, 2, 1).reduce(a)
@@ -410,10 +441,16 @@ def spatial(
             return jax.tree_util.tree_map(red, _results, default, reduction)
 
         n_agents = pos.shape[0]
-        keys = jax.random.split(key, n_agents)
-        results = jax.vmap(agent_reduce, in_axes=(0, 0, 0))(
-            keys, jnp.arange(n_agents), co_ords_a
-        )
+
+        if has_key:
+            keys = jax.random.split(key, n_agents)
+            results = jax.vmap(agent_reduce, in_axes=(0, 0, 0))(
+                keys, jnp.arange(n_agents), co_ords_a
+            )
+        else:
+            results = jax.vmap(agent_reduce, in_axes=(None, 0, 0))(
+                None, jnp.arange(n_agents), co_ords_a
+            )
 
         inv_sort = jnp.argsort(sort_idxs_a)
         results = jax.tree_util.tree_map(lambda y: y[inv_sort], results)
@@ -471,12 +508,11 @@ def nearest_neighbour(
 
     .. testcode:: spatial
 
-       def foo(_k, p, a, b):
+       def foo(p, a, b):
            return p + a + b
 
        x = jnp.array([[0.4, 0.4], [0.6, 0.6], [0.7, 0.7]])
        a = jnp.arange(3)
-       k = jax.random.PRNGKey(101)
 
        result = esquilax.transforms.nearest_neighbour(
            foo,
@@ -484,7 +520,7 @@ def nearest_neighbour(
            default=-1,
            topology="moore"
        )(
-           k, 2, a, a, pos=x
+           2, a, a, pos=x
        )
        # result = [3, 5, 5]
 
@@ -510,20 +546,19 @@ def nearest_neighbour(
            default=(-1, -2),
            topology="moore",
        )
-       def foo(_k, p, _, b):
+       def foo(p, _, b):
            return p + b[0],  p + b[1]
 
        x = jnp.array([[0.1, 0.1], [0.6, 0.6], [0.7, 0.7]])
        a = jnp.arange(6).reshape(3, 2)
-       k = jax.random.PRNGKey(101)
 
-       foo(k, 2, None, a, pos=x)
-       # ([-1, 6, 4], [-2, 7, 5])
+       result = foo(2, None, a, pos=x)
+       # result = ([-1, 6, 4], [-2, 7, 5])
 
     .. doctest:: spatial
        :hide:
 
-       >>> foo(k, 2, None, a, pos=x)
+       >>> result
        (Array([-1,  6,  4], dtype=int32), Array([-2,  7,  5], dtype=int32))
 
     You can also pass different agent types (i.e. two sets
@@ -538,7 +573,7 @@ def nearest_neighbour(
            default=-1,
            topology="moore",
        )
-       def foo(_, params, a, b):
+       def foo(params, a, b):
            return params + a + b
 
        # A consists of a single agents, and b 2 agents
@@ -547,14 +582,32 @@ def nearest_neighbour(
        vals_a = jnp.array([1])
        vals_b = jnp.array([2, 12])
 
-       foo(k, 2, vals_a, vals_b, pos=xa, pos_b=xb)
-       # [5]
+       result = foo(2, vals_a, vals_b, pos=xa, pos_b=xb)
+       # result = [5]
 
     .. doctest:: spatial
        :hide:
 
-       >>> foo(k, 2, vals_a, vals_b, pos=xa, pos_b=xb)
+       >>> result
        Array([5], dtype=int32)
+
+    Random keys can be passed to the wrapped function by
+    using the ``key`` keyword argument
+
+    .. testcode:: spatial
+
+       def foo(p, a, b, *, key):
+           return jax.random.choice(key, 100, ())
+
+       k = jax.random.PRNGKey(101)
+       result = esquilax.transforms.nearest_neighbour(
+           foo,
+           i_range=0.5,
+           default=-1,
+           topology="moore"
+       )(
+           None, None, None, pos=x, key=k
+       )
 
     Parameters
     ----------
@@ -565,7 +618,6 @@ def nearest_neighbour(
         .. code-block:: python
 
            def f(
-               k: chex.PRNGKey,
                params: Any,
                a: Any,
                b: Any,
@@ -582,6 +634,9 @@ def nearest_neighbour(
         - ``b``: End agent in the interaction
         - ``**static_kwargs``: Any arguments required at compile
           time by JAX can be passed as keyword arguments.
+
+        Random keys can be passed to the function by including
+        the ``key`` keyword argument.
     default
         Default value(s) returned if no-neighbours are in
         range of an agent.
@@ -614,19 +669,21 @@ def nearest_neighbour(
 
     offsets = utils.space.get_neighbours_offsets(topology)
     keyword_args = utils.functions.get_keyword_args(f)
+    has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
 
     @partial(jax.jit, static_argnames=keyword_args)
     def _nearest_neighbour(
-        key: chex.PRNGKey,
         params: Any,
         agents_a: Any,
         agents_b: Any,
         *,
         pos: chex.Array,
         pos_b: Optional[chex.Array] = None,
+        key: Optional[chex.PRNGKey] = None,
         **static_kwargs,
     ) -> Any:
         _check_arguments(pos, pos_b, agents_a, agents_b)
+        utils.functions.check_key(has_key, key)
 
         same_types = pos_b is None
 
@@ -698,11 +755,19 @@ def nearest_neighbour(
         inv_sort = jnp.argsort(sort_idxs_a)
         nearest_idxs = nearest_idxs[inv_sort]
 
-        def apply(k, a, idx_b):
+        def apply(
+            k: Optional[chex.PRNGKey], a: chex.ArrayTree, idx_b: chex.Numeric
+        ) -> chex.ArrayTree:
             b = jax.tree.map(lambda x: x.at[idx_b].get(), sorted_agents_b)
-            return partial(f, **static_kwargs)(k, params, a, b)
+            if has_key:
+                result = f(params, a, b, key=k, **static_kwargs)
+            else:
+                result = f(params, a, b, **static_kwargs)
+            return result
 
-        def check(k, a, idx_b):
+        def check(
+            k: Optional[chex.PRNGKey], a: chex.ArrayTree, idx_b: chex.Numeric
+        ) -> chex.ArrayTree:
             return jax.lax.cond(
                 idx_b < 0,
                 lambda *_: default,
@@ -712,8 +777,13 @@ def nearest_neighbour(
                 idx_b,
             )
 
-        keys = jax.random.split(key, n_agents)
-        results = jax.vmap(check)(keys, agents_a, nearest_idxs)
+        if has_key:
+            keys = jax.random.split(key, n_agents)
+            results = jax.vmap(check)(keys, agents_a, nearest_idxs)
+        else:
+            results = jax.vmap(check, in_axes=(None, 0, 0))(
+                None, agents_a, nearest_idxs
+            )
 
         return results
 

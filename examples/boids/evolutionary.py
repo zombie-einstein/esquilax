@@ -45,20 +45,20 @@ class BoidEnv(esquilax.Sim[updates.Params, updates.Boid]):
     def step(
         self,
         _i: int,
-        k: chex.PRNGKey,
+        _k: chex.PRNGKey,
         params: updates.Params,
         boids: updates.Boid,
         *,
         agent_params,
     ):
-        n_nb, x_nb, s_nb, h_nb = updates.observe(k, params, boids, boids, pos=boids.pos)
-        obs = updates.flatten_observations(k, params, (boids, n_nb, x_nb, s_nb, h_nb))
+        n_nb, x_nb, s_nb, h_nb = updates.observe(params, boids, boids, pos=boids.pos)
+        obs = updates.flatten_observations(params, (boids, n_nb, x_nb, s_nb, h_nb))
         actions = esquilax.ml.get_actions(
             self.apply_fun, self.shared_policy, agent_params, obs
         )
-        headings, speeds = updates.update_velocity(k, params, (actions, boids))
-        pos = updates.move(k, params, (boids.pos, headings, speeds))
-        rewards = updates.rewards(k, params, pos, pos, pos=pos)
+        headings, speeds = updates.update_velocity(params, (actions, boids))
+        pos = updates.move(params, (boids.pos, headings, speeds))
+        rewards = updates.rewards(params, pos, pos, pos=pos)
         boids = updates.Boid(pos=pos, heading=headings, speed=speeds)
 
         return boids, esquilax.ml.evo.TrainingData(

@@ -30,7 +30,7 @@ class Params:
     default=(0, jnp.zeros(2), jnp.zeros(2), jnp.zeros(2)),
     include_self=False,
 )
-def observe(_key: chex.PRNGKey, params: Params, a: Boids, b: Boids):
+def observe(params: Params, a: Boids, b: Boids):
     """Aggregate the position and velocities of neighbouring agents"""
     v = esquilax.utils.shortest_vector(b.pos, a.pos)
     d = jnp.sum(v**2)
@@ -45,7 +45,7 @@ def observe(_key: chex.PRNGKey, params: Params, a: Boids, b: Boids):
 
 
 @esquilax.transforms.amap
-def steering(_key: chex.PRNGKey, params: Params, observations):
+def steering(params: Params, observations):
     """
     Calculate new agent velocities from local flock observations
     """
@@ -65,7 +65,7 @@ def steering(_key: chex.PRNGKey, params: Params, observations):
 
 
 @esquilax.transforms.amap
-def limit_speed(_key: chex.PRNGKey, params: Params, v: chex.Array):
+def limit_speed(params: Params, v: chex.Array):
     """
     Limit the upper-lower speed of agents
     """
@@ -86,7 +86,7 @@ def limit_speed(_key: chex.PRNGKey, params: Params, v: chex.Array):
 
 
 @esquilax.transforms.amap
-def move(_key: chex.PRNGKey, _params: Params, x):
+def move(_params: Params, x):
     """
     Update agent positions
     """
@@ -94,15 +94,15 @@ def move(_key: chex.PRNGKey, _params: Params, x):
     return (pos + vel) % 1.0
 
 
-def step(_i: int, k: chex.PRNGKey, params: Params, boids: Boids):
+def step(_i: int, _k: chex.PRNGKey, params: Params, boids: Boids):
     """
     Simulation step and aggregate agent positions
     """
-    n_nb, x_nb, v_nb, v_cl = observe(k, params, boids, boids, pos=boids.pos)
+    n_nb, x_nb, v_nb, v_cl = observe(params, boids, boids, pos=boids.pos)
 
-    vel = steering(k, params, (boids.pos, boids.vel, n_nb, x_nb, v_nb, v_cl))
-    vel = limit_speed(k, params, vel)
-    pos = move(k, params, (boids.pos, vel))
+    vel = steering(params, (boids.pos, boids.vel, n_nb, x_nb, v_nb, v_cl))
+    vel = limit_speed(params, vel)
+    pos = move(params, (boids.pos, vel))
 
     return Boids(pos=pos, vel=vel), pos
 

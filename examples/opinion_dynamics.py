@@ -23,7 +23,7 @@ class SimState:
 @partial(
     esquilax.transforms.graph_reduce, reduction=(jnp.add, jnp.add), default=(0, 0.0)
 )
-def collect_opinions(_, params: Params, my_opinion, your_opinion, weight):
+def collect_opinions(params: Params, my_opinion, your_opinion, weight):
     """
     Observe opinion of neighbouring nodes, add contributions if difference of
     opinion is below a given threshold
@@ -43,7 +43,7 @@ def step(_, k, params: Params, state: SimState):
     Simulation step
     """
     n, new_opinions = collect_opinions(
-        k, params, state.opinions, state.opinions, state.weights, edge_idxs=state.edges
+        params, state.opinions, state.opinions, state.weights, edge_idxs=state.edges
     )
 
     new_opinions = jnp.where(n > 0, new_opinions / n, state.opinions)

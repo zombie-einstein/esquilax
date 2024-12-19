@@ -52,7 +52,7 @@ class BoidEnv(ml.rl.Environment[updates.Params, updates.Boid]):
                 k3, (self.n_agents,), minval=0.0, maxval=2.0 * jnp.pi
             ),
         )
-        obs = self.get_obs(key, params, boids)
+        obs = self.get_obs(params, boids)
         return obs, boids
 
     def step(
@@ -65,26 +65,23 @@ class BoidEnv(ml.rl.Environment[updates.Params, updates.Boid]):
         """
         Update the state of the environment
         """
-        headings, speeds = updates.update_velocity(key, params, (actions, state))
-        pos = updates.move(key, params, (state.pos, headings, speeds))
-        rewards = updates.rewards(key, params, pos, pos, pos=pos)
+        headings, speeds = updates.update_velocity(params, (actions, state))
+        pos = updates.move(params, (state.pos, headings, speeds))
+        rewards = updates.rewards(params, pos, pos, pos=pos)
         boids = updates.Boid(pos=pos, heading=headings, speed=speeds)
-        obs = self.get_obs(key, params, boids)
+        obs = self.get_obs(params, boids)
         return obs, state, rewards, False
 
     def get_obs(
         self,
-        key: chex.PRNGKey,
         params: updates.Params,
         state: updates.Boid,
     ) -> chex.Array:
         """
         Get an observation array from environment state
         """
-        n_nb, x_nb, s_nb, h_nb = updates.observe(
-            key, params, state, state, pos=state.pos
-        )
-        obs = updates.flatten_observations(key, params, (state, n_nb, x_nb, s_nb, h_nb))
+        n_nb, x_nb, s_nb, h_nb = updates.observe(params, state, state, pos=state.pos)
+        obs = updates.flatten_observations(params, (state, n_nb, x_nb, s_nb, h_nb))
         return obs
 
 

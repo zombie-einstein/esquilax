@@ -2,7 +2,7 @@
 Function and data utilities
 """
 import inspect
-from typing import Callable, List
+from typing import Callable, List, Optional, Tuple
 
 import chex
 import jax
@@ -82,3 +82,44 @@ def get_keyword_args(f: Callable) -> List[str]:
         k for k, p in sig.parameters.items() if p.kind == inspect.Parameter.KEYWORD_ONLY
     ]
     return key_word_args
+
+
+def has_key_keyword(keyword_args: List[str]) -> Tuple[bool, List[str]]:
+    """
+    Check if list of arguments contains the "key" keyword
+
+    Parameters
+    ----------
+    keyword_args
+        List of keyword arguments
+
+    Returns
+    -------
+    tuple[bool, list[str]]
+        Flag if "key" was present, and updated list of arguments
+    """
+    has_key = "key" in keyword_args
+    keys = [k for k in keyword_args if k != "key"]
+    return has_key, keys
+
+
+def check_key(has_key: bool, key: Optional[chex.PRNGKey]) -> None:
+    """
+    Assert if a key instance has/not been provided if expected
+
+    Parameters
+    ----------
+    has_key
+        Flag indicating if a wrapped function expects a JAX random key
+    key
+        Optional JAX random key that should be None if ``has_key`` is
+        ``False`` or an instance of a JAX key otherwise.
+
+    Returns
+    -------
+
+    """
+    if has_key:
+        assert key is not None, "Expected keyword argument 'key'"
+    else:
+        assert key is None, "Received unexpected 'key' keyword argument"

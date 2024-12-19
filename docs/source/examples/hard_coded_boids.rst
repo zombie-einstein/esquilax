@@ -62,7 +62,7 @@ Firstly agents observe the state of neighbours within a given range
        default=(0, jnp.zeros(2), jnp.zeros(2), jnp.zeros(2)),
        include_self=False,
    )
-   def observe(_key: chex.PRNGKey, params: Params, a: Boid, b: Boid):
+   def observe(params: Params, a: Boid, b: Boid):
        v = esquilax.utils.shortest_vector(b.pos, a.pos)
        d = jnp.sum(v**2)
 
@@ -96,7 +96,7 @@ The next transformation combines the observations into a steering vector
 .. testcode:: hard_coded_boids
 
    @esquilax.transforms.amap
-   def steering(_key: chex.PRNGKey, params: Params, observations):
+   def steering(params: Params, observations):
        x, v, n_nb, x_nb, v_nb, v_cl = observations
 
        def steer():
@@ -122,7 +122,7 @@ position
 .. testcode:: hard_coded_boids
 
    @esquilax.transforms.amap
-   def limit_speed(_key: chex.PRNGKey, params: Params, v: chex.Array):
+   def limit_speed(params: Params, v: chex.Array):
        s = jnp.sqrt(jnp.sum(v * v))
 
        v = jax.lax.cond(
@@ -143,7 +143,7 @@ position
 
 
    @esquilax.transforms.amap
-   def move(_key: chex.PRNGKey, _params: Params, x):
+   def move(_params: Params, x):
        pos, vel = x
        return (pos + vel) % 1.0
 
@@ -169,16 +169,15 @@ For the boids model this looks like:
 
 .. testcode:: hard_coded_boids
 
-   def step(_i, k, params: Params, boids: Boid):
-       n_nb, x_nb, v_nb, v_cl = observe(k, params, boids, boids, pos=boids.pos)
+   def step(_i, _k, params: Params, boids: Boid):
+       n_nb, x_nb, v_nb, v_cl = observe(params, boids, boids, pos=boids.pos)
 
        vel = steering(
-           k,
            params,
            (boids.pos, boids.vel, n_nb, x_nb, v_nb, v_cl)
        )
-       vel = limit_speed(k, params, vel)
-       pos = move(k, params, (boids.pos, vel))
+       vel = limit_speed(params, vel)
+       pos = move(params, (boids.pos, vel))
 
        return Boid(pos=pos, vel=vel), pos
 
