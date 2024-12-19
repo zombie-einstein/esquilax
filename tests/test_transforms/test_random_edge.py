@@ -34,35 +34,47 @@ from esquilax import transforms
         ),
     ],
 )
-def test_graph_random_neighbour(args, expected, default):
-    key = jax.random.PRNGKey(101)
+def test_graph_random_neighbour(args, expected, default, rng_key):
     edges = jnp.array([[0, 0, 1], [1, 1, 2]])
 
-    def foo(_, p, x, y, z):
+    def foo(p, x, y, z):
         return jax.tree_util.tree_map(lambda a, b, c: p + a + b + c, x, y, z)
 
     results = transforms.random_edge(foo, default=default)(
-        key, 2, *args, edge_idxs=edges
+        2, *args, edge_idxs=edges, key=rng_key
     )
 
     chex.assert_trees_all_equal(expected, results)
 
 
-def test_graph_random_neighbour_w_static():
-    key = jax.random.PRNGKey(101)
+def test_graph_random_neighbour_w_static(rng_key: chex.PRNGKey):
     edges = jnp.array([[0, 0, 1], [1, 1, 2]])
 
     args = jnp.arange(3), jnp.arange(3), jnp.ones((3,))
     expected = jnp.array([4, 6, -1])
 
-    def foo(_, p, x, y, z, *, func):
+    def foo(p, x, y, z, *, func):
         return func(p, x, y, z)
 
     def bar(a, b, c, d):
         return a + b + c + d
 
     results = transforms.random_edge(foo, default=-1.0)(
-        key, 2, *args, func=bar, edge_idxs=edges
+        2, *args, func=bar, edge_idxs=edges, key=rng_key
     )
 
     assert jnp.array_equal(results, expected)
+
+
+def test_graph_random_neighbour_w_rng(rng_key: chex.PRNGKey):
+    edges = jnp.array([[0, 0, 1], [1, 1, 2]])
+
+    def foo(_p, _x, _y, _z, *, key):
+        return jax.random.choice(key, 10_000, ())
+
+    results = transforms.random_edge(foo, default=-1, n=3)(
+        None, None, None, None, edge_idxs=edges, key=rng_key
+    )
+
+    assert results.shape == (3,)
+    assert jnp.unique(results).shape == (3,)

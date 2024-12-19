@@ -399,49 +399,56 @@ def random_edge(
     """
 
     keyword_args = utils.functions.get_keyword_args(f)
+    has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
 
     @partial(jax.jit, static_argnames=keyword_args)
     def _random_edge(
-        k: chex.PRNGKey,
         params: Any,
         starts: chex.ArrayTree,
         ends: chex.ArrayTree,
         edges: chex.ArrayTree,
         *,
         edge_idxs: chex.Array,
+        key: chex.PRNGKey,
         **static_kwargs,
     ) -> chex.ArrayTree:
-        if starts is None:
-            assert n > 0, "If starts is not provided, n should be provided"
         chex.assert_tree_has_only_ndarrays(starts)
         chex.assert_tree_has_only_ndarrays(ends)
         chex.assert_tree_has_only_ndarrays(edges)
         _check_edges(edges, edge_idxs)
-
+        if starts is None:
+            assert n > 0, "If starts is not provided, n should be provided"
         n_results = utils.functions.get_size(starts) if n < 0 else n
         bin_counts, bins = utils.graph.index_bins(edge_idxs[0], n_results)
-        keys = jax.random.split(k, n_results)
 
-        def sample(_k, i, a, b):
+        def sample(
+            _k: Optional[chex.PRNGKey], i: chex.Numeric, a: chex.Array, b: chex.Array
+        ):
             k1, k2 = jax.random.split(_k)
             j = jax.random.randint(k1, (), a, b)
             end_idx = edge_idxs[1][j]
             start = jax.tree_util.tree_map(lambda x: x[i], starts)
             end = jax.tree_util.tree_map(lambda x: x[end_idx], ends)
             edge = jax.tree_util.tree_map(lambda x: x[j], edges)
-            return partial(f, **static_kwargs)(k2, params, start, end, edge)
+            if has_key:
+                result = f(params, start, end, edge, key=k2, **static_kwargs)
+            else:
+                result = f(params, start, end, edge, **static_kwargs)
+            return result
 
         def select(_k, i, count: int, b: chex.Array) -> Any:
             return jax.lax.cond(
                 count > 0, sample, lambda *_: default, _k, i, b[0], b[1]
             )
 
-        return jax.vmap(select, in_axes=(0, 0, 0, 0))(
+        keys = jax.random.split(key, n_results)
+        results = jax.vmap(select, in_axes=(0, 0, 0, 0))(
             keys,
             jnp.arange(n_results),
             bin_counts,
             bins,
         )
+        return results
 
     return _random_edge
 
@@ -568,10 +575,10 @@ def highest_weight(f: Callable, *, default: Default, n: int = -1) -> Callable:
     """
 
     keyword_args = utils.functions.get_keyword_args(f)
+    has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
 
     @partial(jax.jit, static_argnames=keyword_args)
     def _highest_weight(
-        key: chex.PRNGKey,
         params: Any,
         starts: chex.ArrayTree,
         ends: chex.ArrayTree,
@@ -579,10 +586,15 @@ def highest_weight(f: Callable, *, default: Default, n: int = -1) -> Callable:
         *,
         edge_idxs: chex.Array,
         weights: chex.Array,
+        key: Optional[chex.PRNGKey] = None,
         **static_kwargs,
     ) -> Any:
         if starts is None:
             assert n > 0, "If starts is not provided, n should be provided"
+        if has_key:
+            assert key is not None, "Expected keyword argument 'key'"
+        else:
+            assert key is None, "Received unexpected 'key' keyword argument"
         chex.assert_tree_has_only_ndarrays(starts)
         chex.assert_tree_has_only_ndarrays(ends)
         chex.assert_tree_has_only_ndarrays(edges)
@@ -599,19 +611,26 @@ def highest_weight(f: Callable, *, default: Default, n: int = -1) -> Callable:
         max_idxs = s2[bins[:, 0]]
         max_idxs = jnp.where(bin_counts > 0, max_idxs, -1)
 
-        keys = jax.random.split(key, num=n_results)
-
-        def apply(k, i):
+        def apply(k: Optional[chex.PRNGKey], i: chex.Numeric):
             e = edge_idxs[:, i]
             a = jax.tree.map(lambda x: x.at[e[0]].get(), starts)
             b = jax.tree.map(lambda x: x.at[e[1]].get(), ends)
             c = jax.tree.map(lambda x: x.at[i].get(), edges)
-            return partial(f, **static_kwargs)(k, params, a, b, c)
+            if has_key:
+                result = f(params, a, b, c, key=k, **static_kwargs)
+            else:
+                result = f(params, a, b, c, **static_kwargs)
+            return result
 
-        def check(k, i):
+        def check(k: Optional[chex.PRNGKey], i: chex.Numeric):
             return jax.lax.cond(i < 0, lambda *_: default, apply, k, i)
 
-        results = jax.vmap(check)(keys, max_idxs)
+        if has_key:
+            keys = jax.random.split(key, num=n_results)
+            results = jax.vmap(check)(keys, max_idxs)
+        else:
+            results = jax.vmap(check, in_axes=(None, 0))(None, max_idxs)
+
         return results
 
     return _highest_weight
