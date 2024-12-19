@@ -94,7 +94,7 @@ from neighbours in-range
        default=(0, jnp.zeros(2), 0.0, 0.0),
        include_self=False,
    )
-   def observe(_k: chex.PRNGKey, _params: Params, a: Boid, b: Boid):
+   def observe(_params: Params, a: Boid, b: Boid):
        dh = esquilax.utils.shortest_vector(
            a.heading, b.heading, length=2 * jnp.pi
        )
@@ -107,7 +107,7 @@ array to be passed to the steering neural network
 .. testcode:: evo_boids
 
    @esquilax.transforms.amap
-   def flatten_observations(_k: chex.PRNGKey, params: Params, observations):
+   def flatten_observations(params: Params, observations):
        boid, n_nb, x_nb, s_nb, h_nb = observations
 
        def obs_to_nbs():
@@ -151,7 +151,7 @@ and speeds
 
    @esquilax.transforms.amap
    def update_velocity(
-       _k: chex.PRNGKey, params: Params, x: Tuple[chex.Array, Boid]
+       params: Params, x: Tuple[chex.Array, Boid]
    ):
        actions, boid = x
        rotation = actions[0] * params.max_rotate * jnp.pi
@@ -171,7 +171,7 @@ Finally all the boids positions are update from the new velocities
 .. testcode:: evo_boids
 
    @esquilax.transforms.amap
-   def move(_key: chex.PRNGKey, _params: Params, x):
+   def move(_params: Params, x):
        pos, heading, speed = x
        d_pos = jnp.array(
            [speed * jnp.cos(heading), speed * jnp.sin(heading)]
@@ -192,7 +192,7 @@ to calculate reward contributions
        default=0.0,
        include_self=False,
    )
-   def reward(_k: chex.PRNGKey, params: Params, a: chex.Array, b: chex.Array):
+   def reward(params: Params, a: chex.Array, b: chex.Array):
        d = esquilax.utils.shortest_distance(a, b, norm=True)
 
        reward = jax.lax.cond(
@@ -251,7 +251,7 @@ initialisation and model update in a :py:class:`esquilax.SimEnv` class:
        def step(
            self,
            _i: int,
-           k: chex.PRNGKey,
+           _k: chex.PRNGKey,
            params: Params,
            boids: Boid,
            *,
@@ -259,19 +259,19 @@ initialisation and model update in a :py:class:`esquilax.SimEnv` class:
        ) -> Tuple[Boid, evo.TrainingData]:
 
            n_nb, x_nb, s_nb, h_nb = observe(
-               k, params, boids, boids, pos=boids.pos
+               params, boids, boids, pos=boids.pos
            )
            obs = flatten_observations(
-               k, params, (boids, n_nb, x_nb, s_nb, h_nb)
+               params, (boids, n_nb, x_nb, s_nb, h_nb)
            )
            actions = esquilax.ml.get_actions(
                self.apply_fun, False, agent_params, obs
            )
            headings, speeds = update_velocity(
-               k, params, (actions, boids)
+               params, (actions, boids)
            )
-           pos = move(k, params, (boids.pos, headings, speeds))
-           rewards = reward(k, params, pos, pos, pos=pos)
+           pos = move(params, (boids.pos, headings, speeds))
+           rewards = reward(params, pos, pos, pos=pos)
            boids = Boid(pos=pos, heading=headings, speed=speeds)
            return (
                boids,

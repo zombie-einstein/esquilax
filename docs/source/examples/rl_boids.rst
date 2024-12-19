@@ -56,7 +56,7 @@ example, but wrap them up in an environment class
        default=(0, jnp.zeros(2), 0.0, 0.0),
        include_self=False,
    )
-   def observe(_k: chex.PRNGKey, _params: Params, a: Boid, b: Boid):
+   def observe(_params: Params, a: Boid, b: Boid):
        dh = esquilax.utils.shortest_vector(
            a.heading, b.heading, length=2 * jnp.pi
        )
@@ -64,7 +64,7 @@ example, but wrap them up in an environment class
        return 1, dx, b.speed, dh
 
    @esquilax.transforms.amap
-   def flatten_observations(_k: chex.PRNGKey, params: Params, observations):
+   def flatten_observations(params: Params, observations):
        boid, n_nb, x_nb, s_nb, h_nb = observations
 
        def obs_to_nbs():
@@ -91,7 +91,7 @@ example, but wrap them up in an environment class
 
    @esquilax.transforms.amap
    def update_velocity(
-       _k: chex.PRNGKey, params: Params, x: Tuple[chex.Array, Boid]
+       params: Params, x: Tuple[chex.Array, Boid]
    ):
        actions, boid = x
        rotation = actions[0] * params.max_rotate * jnp.pi
@@ -107,7 +107,7 @@ example, but wrap them up in an environment class
        return new_heading, new_speeds
 
    @esquilax.transforms.amap
-   def move(_key: chex.PRNGKey, _params: Params, x):
+   def move(_params: Params, x):
        pos, heading, speed = x
        d_pos = jnp.array(
            [speed * jnp.cos(heading), speed * jnp.sin(heading)]
@@ -121,7 +121,7 @@ example, but wrap them up in an environment class
        default=0.0,
        include_self=False,
    )
-   def reward(_k: chex.PRNGKey, params: Params, a: chex.Array, b: chex.Array):
+   def reward(params: Params, a: chex.Array, b: chex.Array):
        d = esquilax.utils.shortest_distance(a, b, norm=True)
 
        reward = jax.lax.cond(
@@ -160,33 +160,33 @@ example, but wrap them up in an environment class
                    minval=0.0, maxval=2.0 * jnp.pi
                ),
            )
-           obs = self.get_obs(boids, params=params, key=key)
+           obs = self.get_obs(boids, params=params)
            return obs, boids
 
        def step(
            self,
-           key: chex.PRNGKey,
+           _key: chex.PRNGKey,
            params: Params,
            state: Boid,
            actions: chex.Array,
        ) -> Tuple[chex.Array, Boid, chex.Array, chex.Array]:
            headings, speeds = update_velocity(
-               key, params, (actions, state)
+               params, (actions, state)
            )
-           pos = move(key, params, (state.pos, headings, speeds))
-           rewards = reward(key, params, pos, pos, pos=pos)
+           pos = move(params, (state.pos, headings, speeds))
+           rewards = reward(params, pos, pos, pos=pos)
            boids = Boid(pos=pos, heading=headings, speed=speeds)
-           obs = self.get_obs(boids, params=params, key=key)
+           obs = self.get_obs(boids, params=params)
            return obs, state, rewards, False
 
        def get_obs(
-           self, state, params=None, key=None,
+           self, state, params=None
        ) -> chex.Array:
            n_nb, x_nb, s_nb, h_nb = observe(
-               key, params, state, state, pos=state.pos
+               params, state, state, pos=state.pos
            )
            obs = flatten_observations(
-               key, params, (state, n_nb, x_nb, s_nb, h_nb)
+               params, (state, n_nb, x_nb, s_nb, h_nb)
            )
            return obs
 

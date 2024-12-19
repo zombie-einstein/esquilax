@@ -88,12 +88,11 @@ def grid(
 
     .. testcode:: grid
 
-       def foo(_k, p, a, b):
+       def foo(p, a, b):
            return p + a + b
 
        x = jnp.array([[0, 0], [0, 1], [2, 2]])
        a = jnp.arange(3)
-       k = jax.random.PRNGKey(101)
 
        result = esquilax.transforms.grid(
            foo,
@@ -102,7 +101,7 @@ def grid(
            dims=(4, 4),
            include_self=False,
        )(
-           k, 2, a, a, co_ords=x
+           2, a, a, co_ords=x
        )
        # result = [3, 3, 0]
 
@@ -130,19 +129,18 @@ def grid(
            dims=(4, 4),
            include_self=False,
        )
-       def foo(_k, p, _, b):
+       def foo(p, _, b):
            return p + b[0], p + b[1]
 
        x = jnp.array([[0, 0], [0, 1], [2, 2]])
        a = jnp.arange(6).reshape(3, 2)
-       k = jax.random.PRNGKey(101)
 
-       foo(k, 2, None, a, co_ords=x)
-       # ([4, 2, 0], [5, 3, 0])
+       result = foo(2, None, a, co_ords=x)
+       # result = ([4, 2, 0], [5, 3, 0])
 
     .. doctest:: grid
 
-       >>> foo(k, 2, None, a, co_ords=x)
+       >>> result
        (Array([4, 2, 0], dtype=int32), Array([5, 3, 0], dtype=int32))
 
     You can also pass different agent types (i.e. two sets
@@ -151,14 +149,13 @@ def grid(
 
     .. testcode:: grid
 
-       def foo(_k, p, a, b):
+       def foo(p, a, b):
            return p + a + b
 
        xa = jnp.array([[0, 0], [2, 2]])
        xb = jnp.array([[0, 0], [2, 2]])
        a = jnp.arange(2)
        b = 2 + a
-       k = jax.random.PRNGKey(101)
 
        result = esquilax.transforms.grid(
            foo,
@@ -167,7 +164,7 @@ def grid(
            dims=(4, 4),
            include_self=False,
        )(
-           k, 2, a, b, co_ords=xa, co_ords_b=xb
+           2, a, b, co_ords=xa, co_ords_b=xb
        )
        # result = [4, 6]
 
@@ -176,6 +173,22 @@ def grid(
 
        >>> result
        Array([4, 6], dtype=int32)
+
+    .. testcode:: grid
+
+       def foo(p, a, b, *, key):
+           return jax.random.choice(key, 100, ())
+
+       k = jax.random.PRNGKey(101)
+       result = esquilax.transforms.grid(
+           foo,
+           reduction=jnp.add,
+           default=0,
+           dims=(4, 4),
+           include_self=False,
+       )(
+           None, None, None, co_ords=x, key=k
+       )
 
     Parameters
     ----------
@@ -186,7 +199,6 @@ def grid(
         .. code-block:: python
 
            def f(
-               k: chex.PRNGKey,
                params: Any,
                a: Any,
                b: Any,
@@ -197,12 +209,14 @@ def grid(
 
         where
 
-        - ``k``: Is a JAX random key
         - ``params``: Parameters broadcast over all interactions
         - ``a``: Start agent in the interaction
         - ``b``: End agent in the interaction
         - ``**static_kwargs``: Any arguments required at compile
           time by JAX can be passed as keyword arguments.
+
+        Random keys can be passed to the wrapped function by
+        including the ``key`` keyword argument.
     reduction
         Binary monoidal reduction function, eg ``jax.numpy.add``.
     default
@@ -363,18 +377,17 @@ def grid_local(
 
     .. testcode:: grid
 
-       def foo(_k, p, _, grid):
+       def foo(p, _, grid):
            # grid here is an array of values
            return p + grid
 
        x = jnp.array([[1, 1]])
-       k = jax.random.PRNGKey(101)
        grid = jnp.arange(9).reshape(3, 3)
 
        result = esquilax.transforms.grid_local(
            foo
        )(
-           k, 2, None, grid, co_ords=x
+           2, None, grid, co_ords=x
        )
        # result = [[ 2,  3,  4,  5,  6,  7,  8,  9, 10]]
 
@@ -395,22 +408,39 @@ def grid_local(
            esquilax.transforms.grid_local,
            topology="von-neumann",
        )
-       def foo(_k, p, _, g):
+       def foo(p, _, g):
            return p[0] + g[0], p[1] + g[1]
 
        x = jnp.array([[1, 1]])
-       k = jax.random.PRNGKey(101)
        grid = jnp.arange(9).reshape(3, 3)
        grids = (grid, grid + 1)
 
-       foo(k, (1, 2), None, grids, co_ords=x)
-       # ([[5, 6, 8, 4, 2]], [[ 7,  8, 10,  6,  4]])
+       result = foo((1, 2), None, grids, co_ords=x)
+       # result = ([[5, 6, 8, 4, 2]], [[ 7,  8, 10,  6,  4]])
 
     .. doctest:: grid
+       :hide:
 
-       # noqa: E501
-       >>> foo(k, (1, 2), None, grids, co_ords=x)
-       (Array([[5, 6, 8, 4, 2]], dtype=int32), Array([[ 7,  8, 10,  6,  4]], dtype=int32))
+       >>> result[0]
+       Array([[5, 6, 8, 4, 2]], dtype=int32)
+       >>> result[1]
+       Array([[ 7,  8, 10,  6,  4]], dtype=int32)
+
+    Random keys can be passed to the wrapped function by
+    including the ``key`` keyword argument
+
+    .. testcode:: grid
+
+       def foo(_p, _a, grid, *, key):
+           # grid here is an array of values
+           return grid + jax.random.choice(key, 100, ())
+
+       k = jax.random.PRNGKey(101)
+       result = esquilax.transforms.grid_local(
+           foo
+       )(
+           2, None, grid, co_ords=x, key=k
+       )
 
     Parameters
     ----------
@@ -421,7 +451,6 @@ def grid_local(
         .. code-block:: python
 
            def f(
-               k: chex.PRNGKey,
                params: Any,
                a: Any,
                grid: Any,
@@ -432,12 +461,14 @@ def grid_local(
 
         where
 
-        - ``k``: Is a JAX random key
         - ``params``: Parameters broadcast over all interactions
         - ``a``: Agent in the interaction
         - ``grid``: Pytree of arrays gathered from local cells.
         - ``**static_kwargs``: Any arguments required at compile
           time by JAX can be passed as keyword arguments.
+
+        JAX random keys can be passed to the wrapped argument by
+        including the ``key`` keyword argument.
     topology
         Topology of the local neighbourhood, default ``"moore"``.
         The cells passed to the interaction function are gathered
