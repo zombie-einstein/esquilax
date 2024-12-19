@@ -126,10 +126,7 @@ def edge_map(f: Callable) -> Callable:
         key: Optional[chex.PRNGKey] = None,
         **static_kwargs,
     ) -> chex.ArrayTree:
-        if has_key:
-            assert key is not None, "Expected keyword argument 'key'"
-        else:
-            assert key is None, "Received unexpected 'key' keyword argument"
+        utils.functions.check_key(has_key, key)
         chex.assert_tree_has_only_ndarrays(starts)
         chex.assert_tree_has_only_ndarrays(ends)
         chex.assert_tree_has_only_ndarrays(edge_idxs)
@@ -591,10 +588,8 @@ def highest_weight(f: Callable, *, default: Default, n: int = -1) -> Callable:
     ) -> Any:
         if starts is None:
             assert n > 0, "If starts is not provided, n should be provided"
-        if has_key:
-            assert key is not None, "Expected keyword argument 'key'"
-        else:
-            assert key is None, "Received unexpected 'key' keyword argument"
+
+        utils.functions.check_key(has_key, key)
         chex.assert_tree_has_only_ndarrays(starts)
         chex.assert_tree_has_only_ndarrays(ends)
         chex.assert_tree_has_only_ndarrays(edges)

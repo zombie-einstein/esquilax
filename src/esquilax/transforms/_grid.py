@@ -234,11 +234,7 @@ def grid(
         key: Optional[chex.PRNGKey] = None,
         **static_kwargs,
     ) -> Any:
-        if has_key:
-            assert key is not None, "Expected keyword argument 'key'"
-        else:
-            assert key is None, "Received unexpected 'key' keyword argument"
-
+        utils.functions.check_key(has_key, key)
         _check_arguments(co_ords, co_ords_b, agents_a, agents_b)
         same_types = co_ords_b is None
 
@@ -462,13 +458,8 @@ def grid_local(
         co_ords: chex.Array,
         **static_kwargs,
     ) -> chex.ArrayTree:
-        assert grids is not None
-
-        if has_key:
-            assert key is not None, "Expected keyword argument 'key'"
-        else:
-            assert key is None, "Received unexpected 'key' keyword argument"
-
+        assert grids is not None, "'grids' argument should not be None"
+        utils.functions.check_key(has_key, key)
         dims = jax.tree.flatten(grids)[0][0].shape[:2]
         chex.assert_tree_shape_prefix(grids, dims)
         dims = jnp.array(dims)

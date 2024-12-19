@@ -333,10 +333,7 @@ def spatial(
         **static_kwargs,
     ) -> Any:
         _check_arguments(pos, pos_b, agents_a, agents_b)
-        if has_key:
-            assert key is not None, "Expected keyword argument 'key'"
-        else:
-            assert key is None, "Received unexpected 'key' keyword argument"
+        utils.functions.check_key(has_key, key)
 
         same_types = pos_b is None
 
@@ -650,10 +647,7 @@ def nearest_neighbour(
         **static_kwargs,
     ) -> Any:
         _check_arguments(pos, pos_b, agents_a, agents_b)
-        if has_key:
-            assert key is not None, "Expected keyword argument 'key'"
-        else:
-            assert key is None, "Received unexpected 'key' keyword argument"
+        utils.functions.check_key(has_key, key)
 
         same_types = pos_b is None
 
