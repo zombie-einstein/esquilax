@@ -5,7 +5,7 @@ Transformations representing interactions between
 nodes (and edges) on a graph.
 """
 from functools import partial
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import chex
 import jax
@@ -113,25 +113,29 @@ def edge_map(f: Callable) -> Callable:
           by JAX can be passed as keyword arguments.
     """
     keyword_args = utils.functions.get_keyword_args(f)
+    has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
 
     @partial(jax.jit, static_argnames=keyword_args)
     def _edge_map(
-        k: chex.PRNGKey,
         params: Any,
         starts: chex.ArrayTree,
         ends: chex.ArrayTree,
         edges: chex.ArrayTree,
         *,
         edge_idxs: chex.Array,
+        key: Optional[chex.PRNGKey] = None,
         **static_kwargs,
     ) -> chex.ArrayTree:
+        if has_key:
+            assert key is not None, "Expected keyword argument 'key'"
+        else:
+            assert key is None, "Received unexpected 'key' keyword argument"
         chex.assert_tree_has_only_ndarrays(starts)
         chex.assert_tree_has_only_ndarrays(ends)
         chex.assert_tree_has_only_ndarrays(edge_idxs)
         _check_edges(edges, edge_idxs)
 
         n = edge_idxs.shape[1]
-        keys = jax.random.split(k, n)
         starts = jax.tree_util.tree_map(
             lambda x: x.at[edge_idxs[0]].get(),
             starts,
@@ -141,9 +145,18 @@ def edge_map(f: Callable) -> Callable:
             ends,
         )
 
-        return jax.vmap(partial(f, **static_kwargs), in_axes=(0, None, 0, 0, 0))(
-            keys, params, starts, ends, edges
-        )
+        if has_key:
+            keys = jax.random.split(key, n)
+            results = jax.vmap(
+                lambda k, pr, st, en, ed: f(pr, st, en, ed, key=k, **static_kwargs),
+                in_axes=(0, None, 0, 0, 0),
+            )(keys, params, starts, ends, edges)
+        else:
+            results = jax.vmap(partial(f, **static_kwargs), in_axes=(None, 0, 0, 0))(
+                params, starts, ends, edges
+            )
+
+        return results
 
     return _edge_map
 
@@ -262,16 +275,17 @@ def graph_reduce(
 
     _edge_map = edge_map(f)
     keyword_args = utils.functions.get_keyword_args(f)
+    has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
 
     @partial(jax.jit, static_argnames=keyword_args)
     def _graph_reduce(
-        k: chex.PRNGKey,
         params: Any,
         starts: chex.ArrayTree,
         ends: chex.ArrayTree,
         edges: chex.ArrayTree,
         *,
         edge_idxs: chex.Array,
+        key: Optional[chex.PRNGKey] = None,
         **static_kwargs,
     ) -> chex.ArrayTree:
         if starts is None:
@@ -280,7 +294,13 @@ def graph_reduce(
         n_results = utils.functions.get_size(starts) if n < 0 else n
 
         edge_results = _edge_map(
-            k, params, starts, ends, edges, **static_kwargs, edge_idxs=edge_idxs
+            params,
+            starts,
+            ends,
+            edges,
+            **static_kwargs,
+            edge_idxs=edge_idxs,
+            key=key,
         )
         bin_counts, bins = utils.graph.index_bins(edge_idxs[0], n_results)
         bins = bins.reshape(-1)
