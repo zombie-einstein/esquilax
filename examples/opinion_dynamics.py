@@ -20,9 +20,10 @@ class SimState:
     weights: chex.Array
 
 
-@partial(
-    esquilax.transforms.graph_reduce, reduction=(jnp.add, jnp.add), default=(0, 0.0)
-)
+opinion_reduction = esquilax.reductions.Reduction(fn=(jnp.add, jnp.add), id=(0, 0.0))
+
+
+@partial(esquilax.transforms.graph_reduce, reduction=opinion_reduction)
 def collect_opinions(params: Params, my_opinion, your_opinion, weight):
     """
     Observe opinion of neighbouring nodes, add contributions if difference of

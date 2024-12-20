@@ -3,7 +3,7 @@ import jax
 import jax.numpy as jnp
 from jax import tree_util
 
-from esquilax import transforms
+from esquilax import reductions, transforms
 
 
 def test_graph_reduce_array():
@@ -12,7 +12,7 @@ def test_graph_reduce_array():
     def foo(p, x, y, z):
         return p + x + y + z
 
-    results = transforms.graph_reduce(foo, reduction=jnp.add, default=0)(
+    results = transforms.graph_reduce(foo, reduction=reductions.add(dtype=int))(
         2, jnp.arange(3), jnp.arange(3), jnp.arange(3), edge_idxs=edges
     )
     expected = jnp.array([8, 5, 0])
@@ -26,7 +26,7 @@ def test_graph_reduce_array_no_starts():
     def foo(p, x, y, z):
         return p + y + z
 
-    results = transforms.graph_reduce(foo, reduction=jnp.add, default=0, n=3)(
+    results = transforms.graph_reduce(foo, reduction=reductions.add(dtype=int), n=3)(
         2, None, jnp.arange(3), jnp.arange(3), edge_idxs=edges
     )
     expected = jnp.array([8, 4, 0])
@@ -40,8 +40,11 @@ def test_graph_reduce_tuple():
     def foo(p, x, y, z):
         return tree_util.tree_map(lambda a, b, c: p + a + b + c, x, y, z)
 
+    reduction = reductions.Reduction((jnp.add, jnp.add), (0, 0))
+
     results = transforms.graph_reduce(
-        foo, reduction=(jnp.add, jnp.add), default=(0, 0)
+        foo,
+        reduction=reduction,
     )(
         2,
         (jnp.arange(3), jnp.arange(3)),
@@ -63,7 +66,7 @@ def test_graph_reduce_w_static():
     def bar(a, b, c, d):
         return a + b + c + d
 
-    results = transforms.graph_reduce(foo, reduction=jnp.add, default=0)(
+    results = transforms.graph_reduce(foo, reduction=reductions.add(dtype=int))(
         2, jnp.arange(3), jnp.arange(3), jnp.arange(3), func=bar, edge_idxs=edges
     )
     expected = jnp.array([8, 5, 0])
@@ -77,7 +80,7 @@ def test_graph_reduce_w_rng(rng_key: chex.PRNGKey):
     def foo(_p, _x, _y, _z, *, key):
         return jax.random.choice(key, 10_000, ())
 
-    results = transforms.graph_reduce(foo, reduction=jnp.add, default=0, n=3)(
+    results = transforms.graph_reduce(foo, reduction=reductions.add(dtype=int), n=3)(
         None, None, None, None, key=rng_key, edge_idxs=edges
     )
 

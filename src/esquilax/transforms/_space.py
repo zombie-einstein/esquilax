@@ -7,7 +7,8 @@ import jax
 import jax.numpy as jnp
 
 from esquilax import utils
-from esquilax.typing import Default, Reduction
+from esquilax.reductions import Reduction
+from esquilax.typing import Default
 
 
 def _sort_agents(
@@ -113,7 +114,6 @@ def spatial(
     f: Callable,
     *,
     reduction: Reduction,
-    default: Default,
     include_self: bool = False,
     topology: str = "moore",
     n_bins: Optional[int | Sequence[int]] = None,
@@ -330,11 +330,6 @@ def spatial(
     n_bins, width, dims = _process_parameters(i_range, dims, n_bins)
     i_range = width if i_range is None else i_range
     i_range = i_range**2
-
-    chex.assert_trees_all_equal_structs(
-        reduction, default
-    ), "Reduction and default PyTrees should have the same structure"
-
     offsets = utils.space.get_neighbours_offsets(topology)
     keyword_args = utils.functions.get_keyword_args(f)
     has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
@@ -387,7 +382,7 @@ def spatial(
                 else:
                     r = f(params, agent_a, agent_b, **static_kwargs)
                 r = jax.tree_util.tree_map(
-                    lambda red, a, b: red(a, b), reduction, _r, r
+                    lambda red, a, b: red(a, b), reduction.fn, _r, r
                 )
                 return _k, r
 
@@ -405,14 +400,14 @@ def spatial(
 
             if (not same_types) or include_self:
                 _, _results = jax.lax.fori_loop(
-                    bin_range[0], bin_range[1], inner, (k, default)
+                    bin_range[0], bin_range[1], inner, (k, reduction.id)
                 )
             else:
                 k, _results = jax.lax.fori_loop(
                     bin_range[0],
                     jnp.minimum(i, bin_range[1]),
                     inner,
-                    (k, default),
+                    (k, reduction.id),
                 )
                 _, _results = jax.lax.fori_loop(
                     jnp.maximum(i + 1, bin_range[0]),
@@ -438,7 +433,7 @@ def spatial(
             def red(a, _, c):
                 return jnp.frompyfunc(c, 2, 1).reduce(a)
 
-            return jax.tree_util.tree_map(red, _results, default, reduction)
+            return jax.tree_util.tree_map(red, _results, reduction.id, reduction.fn)
 
         n_agents = pos.shape[0]
 

@@ -7,7 +7,7 @@ import jax
 import jax.numpy as jnp
 
 from esquilax import utils
-from esquilax.typing import Default, Reduction
+from esquilax.reductions import Reduction
 
 
 def _sort_agents(
@@ -55,7 +55,6 @@ def grid(
     f: Callable,
     *,
     reduction: Reduction,
-    default: Default,
     dims: Tuple[int, int],
     include_self: bool = False,
     topology: str = "moore",
@@ -282,20 +281,20 @@ def grid(
                     r = f(params, agent_a, agent_b, **static_kwargs)
 
                 r = jax.tree_util.tree_map(
-                    lambda red, a, b: red(a, b), reduction, _r, r
+                    lambda red, a, b: red(a, b), reduction.fn, _r, r
                 )
                 return _k, r
 
             if (not same_types) or include_self:
                 _, _results = jax.lax.fori_loop(
-                    bin_range[0], bin_range[1], interact, (k, default)
+                    bin_range[0], bin_range[1], interact, (k, reduction.id)
                 )
             else:
                 k, _results = jax.lax.fori_loop(
                     bin_range[0],
                     jnp.minimum(i, bin_range[1]),
                     interact,
-                    (k, default),
+                    (k, reduction.id),
                 )
                 _, _results = jax.lax.fori_loop(
                     jnp.maximum(i + 1, bin_range[0]),
@@ -321,7 +320,7 @@ def grid(
             def red(a, _, c):
                 return jnp.frompyfunc(c, 2, 1).reduce(a)
 
-            return jax.tree_util.tree_map(red, _results, default, reduction)
+            return jax.tree_util.tree_map(red, _results, reduction.id, reduction.fn)
 
         n_agents = co_ords.shape[0]
 
