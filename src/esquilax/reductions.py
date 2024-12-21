@@ -18,16 +18,6 @@ class Reduction:
     A reduction function and its associated default value. The
     reduction function and identity can also be PyTrees to
     allow reduction of multiple values in a single pass.
-
-    Attributes
-    ----------
-    fn
-        Binary reduction function(s), i.e. this function should
-        take 2 values/arrays and return a value of the
-        same type and shape.
-    id
-        Identity/default value(s), returned if no values are
-        to be reduced.
     """
 
     __slots__ = ["fn", "id"]
