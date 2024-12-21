@@ -22,7 +22,9 @@ class Reduction:
 
     __slots__ = ["fn", "id"]
 
-    def __init__(self, fn: TypedPyTree[Callable | ufunc], id: chex.ArrayTree) -> None:
+    def __init__(
+        self, fn: TypedPyTree[Callable | ufunc], id: TypedPyTree[chex.Numeric]
+    ) -> None:
         """
         Initialise a reduction
 

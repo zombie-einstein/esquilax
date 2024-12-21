@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "esquilax"
-version = "1.0.3"
+version = "2.0.0"
 description = "JAX multi-agent simulation and ML toolset"
 authors = [
     "Zombie-Einstein <zombie-einstein@proton.me>"
