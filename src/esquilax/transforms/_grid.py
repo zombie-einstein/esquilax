@@ -95,8 +95,7 @@ def grid(
 
        result = esquilax.transforms.grid(
            foo,
-           reduction=jnp.add,
-           default=0,
+           reduction=esquilax.reductions.add(dtype=int),
            dims=(4, 4),
            include_self=False,
        )(
@@ -121,10 +120,13 @@ def grid(
 
     .. testcode:: grid
 
+       tuple_reduce = esquilax.reductions.Reduction(
+           fn=(jnp.add, jnp.add), id=(0, 0),
+       )
+
        @partial(
            esquilax.transforms.grid,
-           reduction=(jnp.add, jnp.add),
-           default=(0, 0),
+           reduction=tuple_reduce,
            dims=(4, 4),
            include_self=False,
        )
@@ -158,8 +160,7 @@ def grid(
 
        result = esquilax.transforms.grid(
            foo,
-           reduction=jnp.add,
-           default=0,
+           reduction=esquilax.reductions.add(dtype=int),
            dims=(4, 4),
            include_self=False,
        )(
@@ -181,8 +182,7 @@ def grid(
        k = jax.random.PRNGKey(101)
        result = esquilax.transforms.grid(
            foo,
-           reduction=jnp.add,
-           default=0,
+           reduction=esquilax.reductions.add(dtype=int),
            dims=(4, 4),
            include_self=False,
        )(
@@ -217,9 +217,7 @@ def grid(
         Random keys can be passed to the wrapped function by
         including the ``key`` keyword argument.
     reduction
-        Binary monoidal reduction function, eg ``jax.numpy.add``.
-    default
-        Default/identity reduction value
+        Binary monoidal reduction.
     dims
         Number of cells along each dimension
     include_self

@@ -169,8 +169,7 @@ def spatial(
        result = esquilax.transforms.spatial(
            foo,
            i_range=0.5,
-           reduction=jnp.add,
-           default=0,
+           reduction=esquilax.reductions.add(dtype=int),
            include_self=False,
        )(
            2, a, a, pos=x
@@ -193,11 +192,14 @@ def spatial(
 
     .. testcode:: spatial
 
+       tuple_reduce = esquilax.reductions.Reduction(
+           fn=(jnp.add, jnp.add), id=(0, 0),
+       )
+
        @partial(
            esquilax.transforms.spatial,
            i_range=0.5,
-           reduction=(jnp.add, jnp.add),
-           default=(0, 0),
+           reduction=tuple_reduce,
            include_self=False,
            topology="same-cell",
        )
@@ -225,8 +227,7 @@ def spatial(
        @partial(
            esquilax.transforms.spatial,
            i_range=0.5,
-           reduction=jnp.add,
-           default=0,
+           reduction=esquilax.reductions.add(dtype=int),
            topology="moore",
        )
        def foo(params, a, b):
@@ -259,8 +260,7 @@ def spatial(
        result = esquilax.transforms.spatial(
            foo,
            i_range=0.5,
-           reduction=jnp.add,
-           default=0,
+           reduction=esquilax.reductions.add(dtype=int),
            include_self=False,
        )(
            None, None, None, pos=x, key=k
@@ -294,9 +294,7 @@ def spatial(
         JAX random keys can be passed to the function by including
         the ``key`` keyword argument.
     reduction
-        Binary monoidal reduction function, eg ``jax.numpy.add``.
-    default
-        Default/identity reduction value
+        Binary monoidal reduction function.
     include_self
         if ``True`` each agent will include itself in the
         gathered values.

@@ -208,7 +208,8 @@ def graph_reduce(f: Callable, *, reduction: Reduction, n: int = -1) -> Callable:
 
        # Call transform with edge indexes
        result = esquilax.transforms.graph_reduce(
-           f, reduction=jnp.add, default=0
+           f,
+           reduction=esquilax.reductions.add(dtype=int)
        )(
            2, starts, ends, edges, edge_idxs=edge_idxs
        )
@@ -227,8 +228,7 @@ def graph_reduce(f: Callable, *, reduction: Reduction, n: int = -1) -> Callable:
 
        @partial(
            esquilax.transforms.graph_reduce,
-           reduction=jnp.add,
-           default=0,
+           reduction=esquilax.reductions.add(dtype=int),
            n=3,
         )
        def f(_params, _start, end, edge):
@@ -255,8 +255,7 @@ def graph_reduce(f: Callable, *, reduction: Reduction, n: int = -1) -> Callable:
 
        @partial(
            esquilax.transforms.graph_reduce,
-           reduction=jnp.add,
-           default=0,
+           reduction=esquilax.reductions.add(dtype=int),
            n=3,
         )
        def f(_params, _start, _end, _edge, *, key):
@@ -290,9 +289,7 @@ def graph_reduce(f: Callable, *, reduction: Reduction, n: int = -1) -> Callable:
         The ``key`` keyword argument can be included
         to pass a random key to the mapped function.
     reduction
-        Binary monoidal reduction function
-    default
-        Default/identity result value
+        Binary monoidal reduction instance
     n
         Number of nodes, should be provided if start-node data is ``None``
     """

@@ -87,11 +87,15 @@ from neighbours in-range
 
 .. testcode:: evo_boids
 
+   reduction = esquilax.reductions.Reduction(
+       fn=(jnp.add, jnp.add, jnp.add, jnp.add),
+       id=(0, jnp.zeros(2), 0.0, 0.0),
+   )
+
    @partial(
        esquilax.transforms.spatial,
        i_range=0.1,
-       reduction=(jnp.add, jnp.add, jnp.add, jnp.add),
-       default=(0, jnp.zeros(2), 0.0, 0.0),
+       reduction=reduction,
        include_self=False,
    )
    def observe(_params: Params, a: Boid, b: Boid):
@@ -188,8 +192,7 @@ to calculate reward contributions
    @partial(
        esquilax.transforms.spatial,
        i_range=0.1,
-       reduction=jnp.add,
-       default=0.0,
+       reduction=esquilax.reductions.add(),
        include_self=False,
    )
    def reward(params: Params, a: chex.Array, b: chex.Array):
