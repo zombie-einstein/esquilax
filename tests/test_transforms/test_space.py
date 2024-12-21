@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import pytest
 
 import esquilax.utils
-from esquilax import transforms
+from esquilax import reductions, transforms
 
 
 @pytest.mark.parametrize(
@@ -34,8 +34,7 @@ def test_spatial_interaction(
     results = transforms.spatial(
         foo,
         n_bins=2,
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         include_self=include_self,
         topology=topology,
         i_range=i_range,
@@ -72,13 +71,12 @@ def test_spatial_w_array(expected, include_self, topology):
     results = transforms.spatial(
         foo,
         n_bins=2,
-        reduction=jnp.add,
-        default=jnp.zeros(2),
+        reduction=reductions.add(shape=(2,), dtype=int),
         include_self=include_self,
         topology=topology,
         i_range=1.0,
     )(
-        jnp.ones(2),
+        jnp.ones(2, dtype=int),
         agents,
         agents,
         pos=x,
@@ -104,11 +102,12 @@ def test_spatial_w_dict(expected, include_self, topology):
 
     agents = {"a": jnp.arange(3), "b": jnp.arange(3) + 1}
 
+    reduction = reductions.Reduction({"a": jnp.add, "b": jnp.add}, {"a": 0, "b": 0})
+
     results = transforms.spatial(
         foo,
         n_bins=2,
-        reduction={"a": jnp.add, "b": jnp.add},
-        default={"a": 0, "b": 0},
+        reduction=reduction,
         include_self=include_self,
         topology=topology,
         i_range=1.0,
@@ -142,11 +141,12 @@ def test_spatial_w_tuple(expected, include_self, topology):
 
     agents = (jnp.arange(3), jnp.arange(3) + 1)
 
+    reduction = reductions.Reduction((jnp.add, jnp.add), (0, 0))
+
     results = transforms.spatial(
         foo,
         n_bins=2,
-        reduction=(jnp.add, jnp.add),
-        default=(0, 0),
+        reduction=reduction,
         include_self=include_self,
         topology=topology,
         i_range=1.0,
@@ -173,8 +173,7 @@ def test_spatial_interaction_w_static():
     results = transforms.spatial(
         foo,
         n_bins=2,
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         include_self=False,
         topology="moore",
         i_range=10.0,
@@ -194,8 +193,7 @@ def test_spatial_w_rng(rng_key: chex.PRNGKey):
 
     results = transforms.spatial(
         foo,
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         include_self=False,
         topology="moore",
         i_range=0.3,
@@ -217,8 +215,7 @@ def test_spatial_mixed_data():
     results = transforms.spatial(
         foo,
         n_bins=2,
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         include_self=False,
         topology="von-neumann",
         i_range=10.0,
@@ -243,8 +240,7 @@ def test_spatial_w_none():
     results = transforms.spatial(
         foo,
         n_bins=2,
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         include_self=False,
         topology="von-neumann",
         i_range=10.0,
@@ -265,8 +261,7 @@ def test_spatial_w_none():
     results = transforms.spatial(
         bar,
         n_bins=2,
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         include_self=False,
         topology="von-neumann",
         i_range=10.0,
@@ -308,8 +303,7 @@ def test_mixed_type_spatial_interaction(
     results = transforms.spatial(
         foo,
         n_bins=2,
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         include_self=include_self,
         topology=topology,
         i_range=i_range,
@@ -345,8 +339,7 @@ def test_space_fuzzy_same_type(n_agents: int, i_range: float):
     vals_b = jnp.arange(2, n_agents + 2)
     results = transforms.spatial(
         foo,
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         include_self=True,
         topology="moore",
         i_range=i_range,
@@ -394,7 +387,7 @@ def test_space_fuzzy_diff_types(n_agents: int, i_range: float):
     vals_a = jnp.arange(1, n_agents_a + 1)
     vals_b = jnp.arange(2, n_agents_b + 2)
     results = transforms.spatial(
-        foo, reduction=jnp.add, default=0, topology="moore", i_range=i_range
+        foo, reduction=reductions.add(dtype=int), topology="moore", i_range=i_range
     )(None, vals_a, vals_b, pos=xa, pos_b=xb)
 
     d = jax.vmap(
@@ -438,8 +431,7 @@ def test_spatial_non_unit_region(
     vals = jnp.arange(1, 3)
     results = transforms.spatial(
         foo,
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         include_self=False,
         topology="moore",
         i_range=i_range,

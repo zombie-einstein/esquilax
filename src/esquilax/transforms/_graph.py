@@ -12,7 +12,8 @@ import jax
 import jax.numpy as jnp
 
 from esquilax import utils
-from esquilax.typing import Default, Reduction
+from esquilax.reductions import Reduction
+from esquilax.typing import Default
 
 
 def _check_edges(edges: chex.ArrayTree, edge_idxs: chex.Array):
@@ -171,9 +172,7 @@ def edge_map(f: Callable) -> Callable:
     return _edge_map
 
 
-def graph_reduce(
-    f: Callable, *, reduction: Reduction, default: Default, n: int = -1
-) -> Callable:
+def graph_reduce(f: Callable, *, reduction: Reduction, n: int = -1) -> Callable:
     """
     Map function over graph edges and reduce results to nodes
 
@@ -209,7 +208,8 @@ def graph_reduce(
 
        # Call transform with edge indexes
        result = esquilax.transforms.graph_reduce(
-           f, reduction=jnp.add, default=0
+           f,
+           reduction=esquilax.reductions.add(dtype=int)
        )(
            2, starts, ends, edges, edge_idxs=edge_idxs
        )
@@ -228,8 +228,7 @@ def graph_reduce(
 
        @partial(
            esquilax.transforms.graph_reduce,
-           reduction=jnp.add,
-           default=0,
+           reduction=esquilax.reductions.add(dtype=int),
            n=3,
         )
        def f(_params, _start, end, edge):
@@ -256,8 +255,7 @@ def graph_reduce(
 
        @partial(
            esquilax.transforms.graph_reduce,
-           reduction=jnp.add,
-           default=0,
+           reduction=esquilax.reductions.add(dtype=int),
            n=3,
         )
        def f(_params, _start, _end, _edge, *, key):
@@ -291,16 +289,10 @@ def graph_reduce(
         The ``key`` keyword argument can be included
         to pass a random key to the mapped function.
     reduction
-        Binary monoidal reduction function
-    default
-        Default/identity result value
+        Binary monoidal reduction instance
     n
         Number of nodes, should be provided if start-node data is ``None``
     """
-
-    chex.assert_trees_all_equal_structs(
-        reduction, default
-    ), "Reduction and default PyTrees should have the same structure"
 
     _edge_map = edge_map(f)
     keyword_args = utils.functions.get_keyword_args(f)
@@ -339,7 +331,9 @@ def graph_reduce(
             x = jnp.where(bin_counts > 0, x, d)
             return x
 
-        results = jax.tree_util.tree_map(reduce, reduction, edge_results, default)
+        results = jax.tree_util.tree_map(
+            reduce, reduction.fn, edge_results, reduction.id
+        )
 
         return results
 

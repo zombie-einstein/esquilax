@@ -3,7 +3,7 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-from esquilax import transforms
+from esquilax import reductions, transforms
 
 
 @pytest.mark.parametrize(
@@ -27,8 +27,7 @@ def test_grid_transform(expected: chex.Array, include_self: bool, topology: str)
     results = transforms.grid(
         foo,
         dims=(3, 3),
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         include_self=include_self,
         topology=topology,
     )(2, vals, vals, co_ords=x)
@@ -58,8 +57,7 @@ def test_grid_transform_w_array(
     results = transforms.grid(
         foo,
         dims=(2, 2),
-        reduction=jnp.add,
-        default=jnp.zeros(2, dtype=int),
+        reduction=reductions.add(shape=(2,), dtype=int),
         include_self=include_self,
         topology=topology,
     )(2, vals, vals, co_ords=x)
@@ -81,8 +79,7 @@ def test_grid_w_static():
     results = transforms.grid(
         foo,
         dims=(2, 2),
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         topology="moore",
         include_self=True,
     )(2, vals, vals, co_ords=x, func=bar)
@@ -102,8 +99,7 @@ def test_grid_w_none():
     results = transforms.grid(
         foo,
         dims=(2, 2),
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         topology="moore",
         include_self=False,
     )(2, vals, None, co_ords=x)
@@ -117,8 +113,7 @@ def test_grid_w_none():
     results = transforms.grid(
         bar,
         dims=(2, 2),
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         topology="moore",
         include_self=False,
     )(2, None, vals, co_ords=x)
@@ -140,8 +135,7 @@ def test_grid_w_mixed_types():
     results = transforms.grid(
         foo,
         dims=(2, 2),
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         topology="von-neumann",
         include_self=False,
     )(2, vals_a, vals_b, co_ords=xa, co_ords_b=xb)
@@ -161,8 +155,7 @@ def test_grid_non_square():
     results = transforms.grid(
         foo,
         dims=(2, 3),
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         topology="von-neumann",
         include_self=False,
     )(2, vals, vals, co_ords=x)
@@ -185,8 +178,7 @@ def test_grid_w_random(rng_key: chex.PRNGKey):
     results = transforms.grid(
         foo,
         dims=(2, 2),
-        reduction=jnp.add,
-        default=0,
+        reduction=reductions.add(dtype=int),
         topology="moore",
         include_self=True,
     )(2, None, None, co_ords=x, key=rng_key)

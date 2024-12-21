@@ -55,11 +55,15 @@ Firstly agents observe the state of neighbours within a given range
 
 .. testcode:: hard_coded_boids
 
+   reduction = esquilax.reductions.Reduction(
+       fn=(jnp.add, jnp.add, jnp.add, jnp.add),
+       id=(0, jnp.zeros(2), jnp.zeros(2), jnp.zeros(2)),
+   )
+
    @partial(
        esquilax.transforms.spatial,
        i_range=0.2,
-       reduction=(jnp.add, jnp.add, jnp.add, jnp.add),
-       default=(0, jnp.zeros(2), jnp.zeros(2), jnp.zeros(2)),
+       reduction=reduction,
        include_self=False,
    )
    def observe(params: Params, a: Boid, b: Boid):
