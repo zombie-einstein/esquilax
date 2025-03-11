@@ -1,1 +1,1 @@
-from . import boids, opinion_dynamics
+from . import boids, game_of_life, opinion_dynamics
