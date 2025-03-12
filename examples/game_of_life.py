@@ -47,7 +47,7 @@ def init_state(key: chex.PRNGKey, dimensions: Tuple[int, int]) -> chex.Array:
 def run_model(
     seed: int = 101,
     n_steps: int = 200,
-    dimensions=(100, 100),
+    dimensions: Tuple[int, int] = (100, 100),
     show_progress: bool = True,
 ) -> chex.Array:
     k = jax.random.PRNGKey(seed)
