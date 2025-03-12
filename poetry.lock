@@ -327,13 +327,13 @@ files = [
 
 [[package]]
 name = "etils"
-version = "1.12.1"
+version = "1.12.2"
 description = "Collection of common python utils"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "etils-1.12.1-py3-none-any.whl", hash = "sha256:9a96b9193aa6e90cc0e0c759c092f863cf4fe972d803933598afbfad71a309c2"},
-    {file = "etils-1.12.1.tar.gz", hash = "sha256:b8cdfb4ef0283825f4b0741a875b2c5c6425be00b6447ad2b80d8feccface109"},
+    {file = "etils-1.12.2-py3-none-any.whl", hash = "sha256:4600bec9de6cf5cb043a171e1856e38b5f273719cf3ecef90199f7091a6b3912"},
+    {file = "etils-1.12.2.tar.gz", hash = "sha256:c6b9e1f0ce66d1bbf54f99201b08a60ba396d3446d9eb18d4bc39b26a2e1a5ee"},
 ]
 
 [package.dependencies]
@@ -2229,4 +2229,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "da22ed07451d6a9d675a7f89e8600660f7e600c16c5b4bbe404ab42f4ed336f9"
+content-hash = "9939e4efc0592bc4732ed533c5fa2623d55fbe99767d0548612fb2b507bb6769"
