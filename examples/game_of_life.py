@@ -1,3 +1,13 @@
+"""
+Basic implementation of Conways game of life
+
+Implementation of game-of-life where each cell
+is represented by an individual agent.
+
+Note that this implementation is not the most efficient
+means of doing it, rather it's a demonstration of the
+use of the grid transformations process.
+"""
 from typing import Tuple
 
 import chex
@@ -55,9 +65,28 @@ def run_model(
     _, state_hist, _ = esquilax.sim_runner(
         step, None, x, n_steps, k, show_progress=show_progress, dimensions=dimensions
     )
-    state_hist = state_hist.reshape(n_steps, dimensions[0], dimensions[1])
+    state_hist = state_hist.reshape(n_steps, *dimensions)
     return state_hist
 
 
 if __name__ == "__main__":
-    run_model()
+    states = run_model()
+
+    try:
+        import matplotlib.pyplot as plt
+        from matplotlib import animation
+
+        f, ax = plt.subplots(figsize=(10, 10))
+        img = ax.imshow(states[0])
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+        def update_fn(s):
+            img.set_data(s)
+            return (img,)
+
+        anim = animation.FuncAnimation(f, update_fn, states[1:])
+        plt.show()
+
+    except ImportError:
+        print("Matplotlib required to show animation")

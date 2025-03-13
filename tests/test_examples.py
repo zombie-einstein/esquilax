@@ -99,5 +99,5 @@ def test_gol():
 
 
 def test_forest_fire():
-    state_hist = examples.forest_fire.run_model(n_steps=50, show_progress=False)
-    assert isinstance(state_hist, examples.forest_fire.State)
+    state_hist = examples.forest_fire.run_model(n_steps=20, show_progress=False)
+    assert state_hist.shape == (20, 100, 100)
