@@ -1,18 +1,27 @@
 """
 Utilities for handling PyTrees of :py:class:`esquilax.ml.evo.strategy`
 """
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
 
 import chex
-import evosax
 import jax
 
 from esquilax.typing import TypedPyTree
 from esquilax.utils import tree
 
+from ._import_check import requires_evosax
 from .strategy import Strategy
 
+if TYPE_CHECKING:
+    import evosax
+else:
+    try:
+        import evosax
+    except ImportError:
+        evosax = None
 
+
+@requires_evosax
 def tree_ask(
     key: chex.PRNGKey,
     strategies: TypedPyTree[Strategy],
@@ -72,6 +81,7 @@ def tree_ask(
     return evo_states, population, population_shaped
 
 
+@requires_evosax
 def tree_tell(
     strategies: TypedPyTree[Strategy],
     populations: chex.ArrayTree,

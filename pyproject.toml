@@ -35,8 +35,12 @@ python = ">=3.10,<4.0"
 jax = ">=0.4.30"
 chex = ">=0.1.3"
 jax-tqdm = ">=0.3.1"
-evosax = "^0.1.6"
-flax = ">=0.8.5"
+evosax = { version = "^0.1.6", optional = true }
+flax = { version = "^0.8.5", optional = true }
+
+[tool.poetry.extras]
+evosax = ["evosax"]
+flax = ["flax"]
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.7.1"

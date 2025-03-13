@@ -14,13 +14,24 @@ of multiple strategies within the same class.
 
 .. _Evosax: https://github.com/RobertTLange/evosax
 """
+from __future__ import annotations
+
 from functools import partial
-from typing import Any, Dict, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Tuple, Union
 
 import chex
-import evosax
 import jax
 from flax.typing import FrozenVariableDict
+
+from ._import_check import requires_evosax
+
+if TYPE_CHECKING:
+    import evosax
+else:
+    try:
+        import evosax
+    except ImportError:
+        evosax = None
 
 
 class Strategy:
@@ -172,6 +183,7 @@ class BasicStrategy(Strategy):
     strategy: evosax.Strategy
     fitness_shaper: evosax.FitnessShaper
 
+    @requires_evosax
     def __init__(
         self,
         network_params: Union[FrozenVariableDict, Dict[str, Any]],

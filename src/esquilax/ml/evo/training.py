@@ -7,11 +7,12 @@ within the same loop.
 
 .. _Evosax: https://github.com/RobertTLange/evosax
 """
+from __future__ import annotations
+
 from functools import partial
-from typing import Collection, Optional, Tuple
+from typing import TYPE_CHECKING, Collection, Optional, Tuple
 
 import chex
-import evosax
 import jax
 import jax.numpy as jnp
 import jax_tqdm
@@ -21,10 +22,15 @@ from esquilax.sim import Sim
 from esquilax.typing import TSimParams, TypedPyTree
 
 from . import tree_utils
+from ._import_check import requires_evosax
 from .strategy import Strategy
 from .types import TrainingData
 
+if TYPE_CHECKING:
+    import evosax
 
+
+@requires_evosax
 @partial(
     jax.jit,
     static_argnames=(
@@ -218,6 +224,7 @@ def train(
     return evo_states, rewards
 
 
+@requires_evosax
 @partial(
     jax.jit,
     static_argnames=(

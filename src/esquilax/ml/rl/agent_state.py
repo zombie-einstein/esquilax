@@ -1,12 +1,25 @@
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
 
 import chex
 import jax
 import jax.numpy as jnp
-import optax
-from flax import linen as nn
-from flax.training.train_state import TrainState
 from typing_extensions import Self
+
+from ._import_check import requires_flax
+
+if TYPE_CHECKING:
+    import optax
+    from flax import linen as nn
+    from flax.training.train_state import TrainState
+else:
+    try:
+        import optax
+        from flax import linen as nn
+        from flax.training.train_state import TrainState
+    except ImportError:
+        optax = None
+        nn = None
+        TrainState = None
 
 
 class AgentState(TrainState):
@@ -18,6 +31,7 @@ class AgentState(TrainState):
     """
 
     @classmethod
+    @requires_flax
     def init_from_model(
         cls,
         key: chex.PRNGKey,
@@ -76,6 +90,7 @@ class BatchAgentState(TrainState):
     """
 
     @classmethod
+    @requires_flax
     def init_from_model(
         cls,
         key: chex.PRNGKey,
