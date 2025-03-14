@@ -3,7 +3,7 @@
 Dependencies can be installed with [poetry](https://python-poetry.org/) by running
 
 ```bash
-poetry install
+poetry install --extras all
 ```
 
 This will initialise a virtual environment,``.venv`` in

@@ -41,14 +41,15 @@ flax = { version = "^0.10.0", optional = true }
 [tool.poetry.extras]
 evo = ["evosax"]
 rl = ["flax"]
+all = ["evosax", "flax"]
 
 [tool.poetry.group.dev.dependencies]
-pre-commit = "^3.7.1"
-taskipy = "^1.13.0"
+pre-commit = "^4.1.0"
+taskipy = "^1.14.0"
 pytest = "^8.2.2"
-sphinx = "^8.0.2"
-piccolo-theme = "^0.23.0"
-sphinx-autoapi = "^3.3.1"
+sphinx = "^8.1.0"
+piccolo-theme = "^0.24.0"
+sphinx-autoapi = "^3.6.0"
 
 [tool.poetry.group.examples]
 optional = true
