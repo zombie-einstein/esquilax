@@ -14,13 +14,14 @@ of multiple strategies within the same class.
 
 .. _Evosax: https://github.com/RobertTLange/evosax
 """
+from __future__ import annotations
+
 from functools import partial
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Tuple
 
 import chex
 import evosax
 import jax
-from flax.typing import FrozenVariableDict
 
 
 class Strategy:
@@ -174,7 +175,7 @@ class BasicStrategy(Strategy):
 
     def __init__(
         self,
-        network_params: Union[FrozenVariableDict, Dict[str, Any]],
+        network_params: Dict[str, Any],
         strategy: evosax.Strategy,
         pop_size: int,
         centered_rank_fitness: bool = True,

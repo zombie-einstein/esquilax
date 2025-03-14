@@ -6,6 +6,7 @@ import jax
 import jax.numpy as jnp
 
 import esquilax
+from esquilax.ml import evo
 
 from . import updates
 
@@ -61,9 +62,7 @@ class BoidEnv(esquilax.Sim[updates.Params, updates.Boid]):
         rewards = updates.rewards(params, pos, pos, pos=pos)
         boids = updates.Boid(pos=pos, heading=headings, speed=speeds)
 
-        return boids, esquilax.ml.evo.TrainingData(
-            rewards=rewards, records=(pos, headings)
-        )
+        return boids, evo.TrainingData(rewards=rewards, records=(pos, headings))
 
 
 def evo_boids(
@@ -88,7 +87,7 @@ def evo_boids(
     else:
         pop_size = n_agents
 
-    strategy = esquilax.ml.evo.BasicStrategy(net_params, strategy, pop_size)
+    strategy = evo.BasicStrategy(net_params, strategy, pop_size)
     evo_params = strategy.default_params()
     evo_state = strategy.initialize(k, evo_params)
 
@@ -98,7 +97,7 @@ def evo_boids(
         shared_policy,
     )
 
-    evo_state, agent_rewards = esquilax.ml.evo.train(
+    evo_state, agent_rewards = evo.train(
         strategy,
         env,
         n_generations,
@@ -115,7 +114,7 @@ def evo_boids(
     params, evo_state = strategy.ask(k, evo_state, evo_params)
     params_shaped = strategy.reshape_params(params)
 
-    test_data = esquilax.ml.evo.test(
+    test_data = evo.test(
         params_shaped, env, n_samples, n_steps, shared_policy, k, env_params=env_params
     )
 

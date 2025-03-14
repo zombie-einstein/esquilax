@@ -71,6 +71,14 @@ Esquilax can be installed from pip using
 pip install esquilax
 ```
 
+The requirements for evolutionary and rl training are
+not installed by default. They can be installed using the `evo` and `rl`
+extras respectively, e.g.:
+
+```bash
+pip install esquilax[evo]
+```
+
 You may need to manually install JAXlib, especially for GPU support.
 Installation instructions for JAX can be found
 [here](https://github.com/google/jax?tab=readme-ov-file#installation).
@@ -78,10 +86,19 @@ Installation instructions for JAX can be found
 ## Examples
 
 Example models and multi-agent policy training implemented using Esquilax
-can be found [here](https://github.com/zombie-einstein/esquilax/tree/main/examples).
+can be found [here](https://github.com/zombie-einstein/esquilax/tree/main/examples). A virtual environment with additional
+dependencies for the examples can be setup using [poetry](https://python-poetry.org/)
+with
+
+```bash
+poetry install --extras all --with examples
+```
 
 For a larger project using Esquilax see this
 [Boid flock RL environment](https://github.com/zombie-einstein/flock_env).
+
+or [this](https://github.com/instadeepai/jumanji/tree/main/jumanji/environments/swarms/search_and_rescue)
+multi-agent rl environment, part of the Jumanji RL environment library.
 
 ## Contributing
 

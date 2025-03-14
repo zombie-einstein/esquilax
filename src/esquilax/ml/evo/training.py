@@ -7,6 +7,8 @@ within the same loop.
 
 .. _Evosax: https://github.com/RobertTLange/evosax
 """
+from __future__ import annotations
+
 from functools import partial
 from typing import Collection, Optional, Tuple
 

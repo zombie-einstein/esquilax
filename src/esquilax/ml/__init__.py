@@ -9,5 +9,4 @@ Training supports several configurations, including multiple RL agents
 with individual policies, and training of multiple agent
 types or strategies inside the same environment.
 """
-from . import evo, rl
 from .updates import get_actions, sample_actions

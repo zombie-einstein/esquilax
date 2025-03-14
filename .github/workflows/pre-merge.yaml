@@ -31,7 +31,7 @@ jobs:
           version: 1.5.1
           virtualenvs-create: false
           installer-parallel: true
-      - run: poetry install
+      - run: poetry install --extras "evo rl"
       - run: pytest -vv
   build-and-test-docs:
     if: github.event.pull_request.draft == false
@@ -46,6 +46,18 @@ jobs:
           version: 1.5.1
           virtualenvs-create: false
           installer-parallel: true
-      - run: poetry install
+      - run: poetry install --extras "evo rl"
       - run: task docs
       - run: task doc-tests
+  test-no-extras:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install package
+        run: pip install .[rl,evo] pytest
+      - name: Run core tests
+        run: pytest tests/test_core/

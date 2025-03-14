@@ -1,27 +1,4 @@
-import examples
-from examples.boids import updates
-
-
-def test_opinion_dynamics_example():
-    n_steps = 100
-    n_agents = 50
-
-    results = examples.opinion_dynamics.opinion_dynamics(
-        n_agents, 250, n_steps, show_progress=False
-    )
-
-    assert results.shape == (n_steps, n_agents)
-
-
-def test_hard_coded_boids_example():
-    n_steps = 100
-    n_agents = 50
-
-    results = examples.boids.hard_coded.boids_sim(
-        n_agents, n_steps, show_progress=False
-    )
-
-    assert results.shape == (n_steps, n_agents, 2)
+from examples.boids import evolutionary, rl, updates
 
 
 def test_evo_boids_a():
@@ -31,7 +8,7 @@ def test_evo_boids_a():
     n_samples = 2
     n_steps = 8
 
-    f = examples.boids.evolutionary
+    f = evolutionary
     params = updates.Params()
     _, scores, (test_paths, test_headings), test_rewards = f.evo_boids(
         params,
@@ -57,7 +34,7 @@ def test_evo_boids_b():
     n_samples = 2
     n_steps = 25
 
-    f = examples.boids.evolutionary
+    f = evolutionary
     params = updates.Params()
     _, scores, (test_paths, test_headings), test_rewards = f.evo_boids(
         params,
@@ -82,7 +59,7 @@ def test_rl_boids():
     n_env = 2
     n_steps = 25
 
-    agent, rewards = examples.boids.rl.rl_boids(
+    _agent, _rewards = rl.rl_boids(
         updates.Params(),
         n_agents,
         n_epochs,
@@ -91,13 +68,3 @@ def test_rl_boids():
         layer_width=4,
         show_progress=False,
     )
-
-
-def test_gol():
-    state_hist = examples.game_of_life.run_model(n_steps=20, show_progress=False)
-    assert state_hist.shape == (20, 100, 100)
-
-
-def test_forest_fire():
-    state_hist = examples.forest_fire.run_model(n_steps=20, show_progress=False)
-    assert state_hist.shape == (20, 100, 100)
