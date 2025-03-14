@@ -17,20 +17,11 @@ of multiple strategies within the same class.
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, Dict, Tuple
+from typing import Any, Dict, Tuple
 
 import chex
+import evosax
 import jax
-
-from ._import_check import requires_evosax
-
-if TYPE_CHECKING:
-    import evosax
-else:
-    try:
-        import evosax
-    except ImportError:
-        evosax = None
 
 
 class Strategy:
@@ -182,7 +173,6 @@ class BasicStrategy(Strategy):
     strategy: evosax.Strategy
     fitness_shaper: evosax.FitnessShaper
 
-    @requires_evosax
     def __init__(
         self,
         network_params: Dict[str, Any],

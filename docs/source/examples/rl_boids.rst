@@ -23,6 +23,7 @@ example, but wrap them up in an environment class
    import optax
    import esquilax
    from esquilax import ml
+   from esquilax.ml import rl
 
    @chex.dataclass
    class Boid:
@@ -216,7 +217,7 @@ class :py:class:`esquilax.ml.rl.SharedPolicyAgent`
 
 .. testcode:: rl_boids
 
-   class RLAgent(ml.rl.Agent):
+   class RLAgent(rl.Agent):
        def sample_actions(
            self, key, agent_state, observations, greedy=False,
        ):

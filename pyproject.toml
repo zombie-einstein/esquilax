@@ -39,8 +39,8 @@ evosax = { version = "^0.1.6", optional = true }
 flax = { version = "^0.8.5", optional = true }
 
 [tool.poetry.extras]
-evosax = ["evosax"]
-flax = ["flax"]
+evo = ["evosax"]
+rl = ["flax"]
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.7.1"
