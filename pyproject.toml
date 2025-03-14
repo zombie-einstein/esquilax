@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "esquilax"
-version = "2.0.2"
+version = "2.1.0"
 description = "JAX multi-agent simulation and ML toolset"
 authors = [
     "Zombie-Einstein <zombie-einstein@proton.me>"
@@ -21,6 +21,7 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
   "License :: OSI Approved :: MIT License",
