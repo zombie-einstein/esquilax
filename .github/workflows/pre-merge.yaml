@@ -78,6 +78,6 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install package
-        run: pip install .[evo,rs] pytest
+        run: pip install .[rl,evo] pytest
       - name: Run core tests
         run: pytest tests/test_core/
