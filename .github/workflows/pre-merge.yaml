@@ -21,17 +21,20 @@ jobs:
   run-tests:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: ${{ matrix.python-version }}
       - uses: snok/install-poetry@v1
         with:
           version: 1.5.1
           virtualenvs-create: false
           installer-parallel: true
-      - run: poetry install --extras "evo rl"
+      - run: poetry install --extras all
       - run: pytest -vv
   build-and-test-docs:
     if: github.event.pull_request.draft == false
@@ -46,7 +49,7 @@ jobs:
           version: 1.5.1
           virtualenvs-create: false
           installer-parallel: true
-      - run: poetry install --extras "evo rl"
+      - run: poetry install --extras all
       - run: task docs
       - run: task doc-tests
   test-no-extras:
@@ -58,6 +61,6 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install package
-        run: pip install .[rl,evo] pytest
+        run: pip install . pytest
       - name: Run core tests
         run: pytest tests/test_core/
