@@ -17,11 +17,10 @@ of multiple strategies within the same class.
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, Dict, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Tuple
 
 import chex
 import jax
-from flax.typing import FrozenVariableDict
 
 from ._import_check import requires_evosax
 
@@ -186,7 +185,7 @@ class BasicStrategy(Strategy):
     @requires_evosax
     def __init__(
         self,
-        network_params: Union[FrozenVariableDict, Dict[str, Any]],
+        network_params: Dict[str, Any],
         strategy: evosax.Strategy,
         pop_size: int,
         centered_rank_fitness: bool = True,
