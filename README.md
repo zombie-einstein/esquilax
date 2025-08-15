@@ -94,11 +94,12 @@ with
 poetry install --extras all --with examples
 ```
 
-For a larger project using Esquilax see this
-[Boid flock RL environment](https://github.com/zombie-einstein/flock_env).
-
-or [this](https://github.com/instadeepai/jumanji/tree/main/jumanji/environments/swarms/search_and_rescue)
-multi-agent rl environment, part of the Jumanji RL environment library.
+For a project using Esquilax see
+[Covey](https://github.com/zombie-einstein/covey) a collection of multi-agent
+RL flock/swarm environments or
+[this](https://github.com/instadeepai/jumanji/tree/main/jumanji/environments/swarms/search_and_rescue)
+multi-agent rl environment, part of the [Jumanji](https://github.com/instadeepai/jumanji)
+RL environment library.
 
 ## Contributing
 
