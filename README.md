@@ -95,7 +95,7 @@ poetry install --extras all --with examples
 ```
 
 For a project using Esquilax see
-[Covey](https://github.com/zombie-einstein/covey) a collection of multi-agent
+[Floxs](https://github.com/zombie-einstein/floxs) a collection of multi-agent
 RL flock/swarm environments or
 [this](https://github.com/instadeepai/jumanji/tree/main/jumanji/environments/swarms/search_and_rescue)
 multi-agent rl environment, part of the [Jumanji](https://github.com/instadeepai/jumanji)
