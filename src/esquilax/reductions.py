@@ -1,7 +1,8 @@
 """
 Reduction interface and common implementations
 """
-from typing import Callable, Sequence
+
+from collections.abc import Callable, Sequence
 
 import chex
 import jax
@@ -35,9 +36,10 @@ class Reduction:
         id
             Identity/default value of the reduction.
         """
-        chex.assert_trees_all_equal_structs(
-            fn, id
-        ), "'fn' and 'id' PyTrees should have the same structure"
+        (
+            chex.assert_trees_all_equal_structs(fn, id),
+            "'fn' and 'id' PyTrees should have the same structure",
+        )
         self.fn = fn
         self.id = id
 

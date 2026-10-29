@@ -4,8 +4,10 @@ Graph transformations
 Transformations representing interactions between
 nodes (and edges) on a graph.
 """
+
+from collections.abc import Callable
 from functools import partial
-from typing import Any, Callable, Optional
+from typing import Any
 
 import chex
 import jax
@@ -18,7 +20,7 @@ from esquilax.typing import Default
 
 def _check_edges(edges: chex.ArrayTree, edge_idxs: chex.Array):
     assert edge_idxs.ndim == 2 and edge_idxs.shape[0] == 2, (
-        "edge_idxs should be a 2d array of node " f"index pairs, got {edge_idxs.shape}"
+        f"edge_idxs should be a 2d array of node index pairs, got {edge_idxs.shape}"
     )
     chex.assert_tree_shape_prefix(edges, edge_idxs.shape[1:])
 
@@ -137,7 +139,7 @@ def edge_map(f: Callable) -> Callable:
         edges: chex.ArrayTree,
         *,
         edge_idxs: chex.Array,
-        key: Optional[chex.PRNGKey] = None,
+        key: chex.PRNGKey | None = None,
         **static_kwargs,
     ) -> chex.ArrayTree:
         utils.functions.check_key(has_key, key)
@@ -296,7 +298,7 @@ def graph_reduce(f: Callable, *, reduction: Reduction, n: int = -1) -> Callable:
 
     _edge_map = edge_map(f)
     keyword_args = utils.functions.get_keyword_args(f)
-    has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
+    _has_key, keyword_args = utils.functions.has_key_keyword(keyword_args)
 
     @partial(jax.jit, static_argnames=keyword_args)
     def _graph_reduce(
@@ -306,7 +308,7 @@ def graph_reduce(f: Callable, *, reduction: Reduction, n: int = -1) -> Callable:
         edges: chex.ArrayTree,
         *,
         edge_idxs: chex.Array,
-        key: Optional[chex.PRNGKey] = None,
+        key: chex.PRNGKey | None = None,
         **static_kwargs,
     ) -> chex.ArrayTree:
         if starts is None:
@@ -447,7 +449,7 @@ def random_edge(
         bin_counts, bins = utils.graph.index_bins(edge_idxs[0], n_results)
 
         def sample(
-            _k: Optional[chex.PRNGKey], i: chex.Numeric, a: chex.Array, b: chex.Array
+            _k: chex.PRNGKey | None, i: chex.Numeric, a: chex.Array, b: chex.Array
         ):
             k1, k2 = jax.random.split(_k)
             j = jax.random.randint(k1, (), a, b)
@@ -627,7 +629,7 @@ def highest_weight(f: Callable, *, default: Default, n: int = -1) -> Callable:
         *,
         edge_idxs: chex.Array,
         weights: chex.Array,
-        key: Optional[chex.PRNGKey] = None,
+        key: chex.PRNGKey | None = None,
         **static_kwargs,
     ) -> Any:
         if starts is None:
@@ -650,7 +652,7 @@ def highest_weight(f: Callable, *, default: Default, n: int = -1) -> Callable:
         max_idxs = s2[bins[:, 0]]
         max_idxs = jnp.where(bin_counts > 0, max_idxs, -1)
 
-        def apply(k: Optional[chex.PRNGKey], i: chex.Numeric):
+        def apply(k: chex.PRNGKey | None, i: chex.Numeric):
             e = edge_idxs[:, i]
             a = jax.tree.map(lambda x: x.at[e[0]].get(), starts)
             b = jax.tree.map(lambda x: x.at[e[1]].get(), ends)
@@ -661,7 +663,7 @@ def highest_weight(f: Callable, *, default: Default, n: int = -1) -> Callable:
                 result = f(params, a, b, c, **static_kwargs)
             return result
 
-        def check(k: Optional[chex.PRNGKey], i: chex.Numeric):
+        def check(k: chex.PRNGKey | None, i: chex.Numeric):
             return jax.lax.cond(i < 0, lambda *_: default, apply, k, i)
 
         if has_key:

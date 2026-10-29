@@ -1,8 +1,10 @@
 """
 Simulation and experiment runners
 """
+
+from collections.abc import Callable
 from functools import partial
-from typing import Any, Callable, Tuple, Union
+from typing import Any
 
 import chex
 import jax
@@ -14,11 +16,11 @@ def sim_runner(
     params: Any,
     initial_state: chex.ArrayTree,
     n_steps: int,
-    rng: Union[chex.PRNGKey, int],
+    rng: chex.PRNGKey | int,
     show_progress: bool = True,
     pbar_id: int = 0,
     **static_kwargs,
-) -> Tuple[Any, Any, chex.PRNGKey]:
+) -> tuple[Any, Any, chex.PRNGKey]:
     """
     Run a simulation and track state
 

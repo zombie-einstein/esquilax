@@ -1,6 +1,6 @@
 import typing
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 import chex
 import jax
@@ -127,7 +127,7 @@ def amap(f: typing.Callable) -> typing.Callable:
     def _self(
         params: Any,
         x: chex.ArrayTree,
-        key: Optional[chex.PRNGKey] = None,
+        key: chex.PRNGKey | None = None,
         **static_kwargs,
     ) -> chex.ArrayTree:
         chex.assert_tree_has_only_ndarrays(x)

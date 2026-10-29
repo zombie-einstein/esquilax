@@ -1,9 +1,9 @@
-import pkg_resources
+import importlib.metadata
 
 project = "Esquilax"
 copyright = "2024, zombie-einstein"
 author = "zombie-einstein"
-release = pkg_resources.get_distribution("esquilax").version
+release = importlib.metadata.version("esquilax")
 
 extensions = [
     "sphinx.ext.napoleon",

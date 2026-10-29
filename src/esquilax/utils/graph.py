@@ -1,14 +1,15 @@
 """
 Graph/network utility functions
 """
-from typing import Any, Tuple, Union
+
+from typing import Any
 
 import chex
 import jax
 import jax.numpy as jnp
 
 
-def sort_edges(x: chex.Array, *args) -> Union[chex.Array, Tuple[chex.Array, Any]]:
+def sort_edges(x: chex.Array, *args) -> chex.Array | tuple[chex.Array, Any]:
     """
     Sort graph edge indices and data for use in graph transformations
 
@@ -64,7 +65,7 @@ def sort_edges(x: chex.Array, *args) -> Union[chex.Array, Tuple[chex.Array, Any]
         return x
 
 
-def index_bins(indices: chex.Array, length: int) -> Tuple[chex.Array, chex.Array]:
+def index_bins(indices: chex.Array, length: int) -> tuple[chex.Array, chex.Array]:
     """
     Count indices frequencies and generate bins of contiguous indices
 

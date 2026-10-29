@@ -9,7 +9,6 @@ if an unburnt tree has a neighbouring tree on fire then it will
 catch fire. Trees that are on fire become burnt/embers in the
 next turn.
 """
-from typing import Tuple
 
 import chex
 import jax
@@ -30,8 +29,8 @@ def step(
     _params: None,
     state: State,
     *,
-    dimensions: Tuple[int, int],
-) -> Tuple[State, chex.Array]:
+    dimensions: tuple[int, int],
+) -> tuple[State, chex.Array]:
     catch_fire = esquilax.transforms.grid(
         lambda _p, a, b: jnp.logical_and(a == 0, b == 1),
         reduction=esquilax.reductions.logical_or(),
@@ -47,7 +46,7 @@ def step(
     return new_state, state.status
 
 
-def init_state(key: chex.PRNGKey, density: float, dimensions: Tuple[int, int]) -> State:
+def init_state(key: chex.PRNGKey, density: float, dimensions: tuple[int, int]) -> State:
     n = dimensions[0] * dimensions[1]
     cell_co_ords = (
         jnp.stack(jnp.meshgrid(jnp.arange(dimensions[0]), jnp.arange(dimensions[1])))
@@ -65,7 +64,7 @@ def init_state(key: chex.PRNGKey, density: float, dimensions: Tuple[int, int]) -
 
 
 def flatten_state(
-    dimensions: Tuple[int, int], co_ords: chex.Array, statuses: chex.Array
+    dimensions: tuple[int, int], co_ords: chex.Array, statuses: chex.Array
 ) -> chex.Array:
     def flatten(s):
         x = jnp.zeros(dimensions, dtype=int)
@@ -79,7 +78,7 @@ def run_model(
     seed: int = 101,
     n_steps: int = 200,
     density: float = 0.5,
-    dimensions: Tuple[int, int] = (100, 100),
+    dimensions: tuple[int, int] = (100, 100),
     show_progress: bool = True,
 ) -> chex.Array:
     k = jax.random.PRNGKey(seed)

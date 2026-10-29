@@ -2,8 +2,6 @@
 Batch simulation runner
 """
 
-from typing import Optional, Union
-
 import chex
 import jax
 
@@ -15,10 +13,10 @@ def batch_sim_runner(
     sim: Sim,
     n_samples: int,
     n_steps: int,
-    rng: Union[chex.PRNGKey, int],
+    rng: chex.PRNGKey | int,
     show_progress: bool = True,
-    params: Optional[TSimParams] = None,
-    param_samples: Optional[TSimParams] = None,
+    params: TSimParams | None = None,
+    param_samples: TSimParams | None = None,
     **step_kwargs,
 ) -> chex.ArrayTree:
     """
@@ -63,9 +61,9 @@ def batch_sim_runner(
     """
     key = rng if isinstance(rng, chex.PRNGKey) else jax.random.PRNGKey(rng)
 
-    assert (
-        params is None or param_samples is None
-    ), "Either params or param_samples should be provided, not both"
+    assert params is None or param_samples is None, (
+        "Either params or param_samples should be provided, not both"
+    )
 
     if params is None and param_samples is None:
         params = sim.default_params()

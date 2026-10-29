@@ -1,6 +1,7 @@
+from collections.abc import Callable, Sequence
 from functools import partial
 from math import floor, isclose, prod
-from typing import Any, Callable, Optional, Sequence, Tuple, Union
+from typing import Any
 
 import chex
 import jax
@@ -12,8 +13,8 @@ from esquilax.typing import Default
 
 
 def _sort_agents(
-    n_bins: Tuple[int, int], width: float, pos: chex.Array, agents: chex.Array
-) -> Tuple[chex.Array, chex.Array, chex.Array, chex.Array, chex.Array, chex.ArrayTree]:
+    n_bins: tuple[int, int], width: float, pos: chex.Array, agents: chex.Array
+) -> tuple[chex.Array, chex.Array, chex.Array, chex.Array, chex.Array, chex.ArrayTree]:
     co_ords, idxs = utils.space.get_bins(pos, n_bins, width)
     sort_idxs = jnp.argsort(idxs)
     _, bins = utils.graph.index_bins(idxs, prod(n_bins))
@@ -27,24 +28,24 @@ def _sort_agents(
 
 def _process_parameters(
     i_range: float,
-    dims: Union[float, Sequence[float]],
-    n_bins: Optional[int | Sequence[int]],
-) -> Tuple[Tuple[int, int], float, chex.Array]:
+    dims: float | Sequence[float],
+    n_bins: int | Sequence[int] | None,
+) -> tuple[tuple[int, int], float, chex.Array]:
     if isinstance(dims, Sequence):
-        assert (
-            len(dims) == 2
-        ), f"2 spatial dimensions should be provided got {len(dims)}"
+        assert len(dims) == 2, (
+            f"2 spatial dimensions should be provided got {len(dims)}"
+        )
 
         if n_bins is not None:
-            assert isinstance(
-                n_bins, Sequence
-            ), f"n_bins should be a sequence if dims is a sequence, got {type(n_bins)}"
-            assert (
-                len(n_bins) == 2
-            ), f"Number of bins should be provided for 2 dimensions, got {len(n_bins)}"
-            assert (
-                n_bins[0] > 0 and n_bins[1] > 0
-            ), f"n_bins should all be greater than 0, got {n_bins}"
+            assert isinstance(n_bins, Sequence), (
+                f"n_bins should be a sequence if dims is a sequence, got {type(n_bins)}"
+            )
+            assert len(n_bins) == 2, (
+                f"Number of bins should be provided for 2 dimensions, got {len(n_bins)}"
+            )
+            assert n_bins[0] > 0 and n_bins[1] > 0, (
+                f"n_bins should all be greater than 0, got {n_bins}"
+            )
             w1, w2 = dims[0] / n_bins[0], dims[1] / n_bins[1]
             assert w1 == w2, (
                 "Dimensions of cells should be equal in "
@@ -52,14 +53,14 @@ def _process_parameters(
             )
             n_bins = (n_bins[0], n_bins[1])
         else:
-            assert (
-                i_range is not None
-            ), "If n_bins is not provided, i_range should be provided"
+            assert i_range is not None, (
+                "If n_bins is not provided, i_range should be provided"
+            )
             n0 = dims[0] / i_range
             n1 = dims[1] / i_range
-            assert isclose(round(n0), n0) and isclose(
-                round(n1), n1
-            ), "Dimensions should be a multiple of i_range"
+            assert isclose(round(n0), n0) and isclose(round(n1), n1), (
+                "Dimensions should be a multiple of i_range"
+            )
             n_bins = (round(n0), round(n1))
 
         width = dims[0] / n_bins[0]
@@ -67,9 +68,9 @@ def _process_parameters(
 
     else:
         if n_bins is not None:
-            assert isinstance(
-                n_bins, int
-            ), "n_bins should be an integer value if dims is a float"
+            assert isinstance(n_bins, int), (
+                "n_bins should be an integer value if dims is a float"
+            )
             assert n_bins > 0, f"n_bins should be greater than 0, got {n_bins}"
             n_bins = (n_bins, n_bins)
         else:
@@ -84,13 +85,13 @@ def _process_parameters(
 
 def _check_arguments(
     pos: chex.Array,
-    pos_b: Optional[chex.Array],
+    pos_b: chex.Array | None,
     agent_a: chex.ArrayTree,
     agent_b: chex.ArrayTree,
 ) -> None:
-    assert (
-        pos.ndim == 2 and pos.shape[1] == 2
-    ), f"pos argument should be an array of 2d coordinates, got shape {pos.shape}"
+    assert pos.ndim == 2 and pos.shape[1] == 2, (
+        f"pos argument should be an array of 2d coordinates, got shape {pos.shape}"
+    )
 
     if pos_b is not None:
         assert pos.ndim == 2 and pos.shape[1] == 2, (
@@ -116,9 +117,9 @@ def spatial(
     reduction: Reduction,
     include_self: bool = False,
     topology: str = "moore",
-    n_bins: Optional[int | Sequence[int]] = None,
-    i_range: Optional[float] = None,
-    dims: Union[float, Sequence[float]] = 1.0,
+    n_bins: int | Sequence[int] | None = None,
+    i_range: float | None = None,
+    dims: float | Sequence[float] = 1.0,
 ) -> Callable:
     """
     Apply a function between agents based on spatial proximity
@@ -339,8 +340,8 @@ def spatial(
         agents_b: Any,
         *,
         pos: chex.Array,
-        pos_b: Optional[chex.Array] = None,
-        key: Optional[chex.PRNGKey] = None,
+        pos_b: chex.Array | None = None,
+        key: chex.PRNGKey | None = None,
         **static_kwargs,
     ) -> Any:
         _check_arguments(pos, pos_b, agents_a, agents_b)
@@ -352,7 +353,7 @@ def spatial(
             co_ords_a,
             sort_idxs_a,
             bins_a,
-            sorted_idxs_a,
+            _sorted_idxs_a,
             sorted_pos_a,
             sorted_agents_a,
         ) = _sort_agents(n_bins, width, pos, agents_a)
@@ -366,13 +367,13 @@ def spatial(
                 n_bins, width, pos_b, agents_b
             )
 
-        def cell(k: Optional[chex.PRNGKey], i: int, bin_range: chex.Array) -> Any:
+        def cell(k: chex.PRNGKey | None, i: int, bin_range: chex.Array) -> Any:
             agent_a = jax.tree_util.tree_map(lambda y: y[i], sorted_agents_a)
             pos_a = sorted_pos_a[i]
 
             def interact(
-                j: int, _k: Optional[chex.PRNGKey], _r: Any
-            ) -> Tuple[Optional[chex.PRNGKey], Any]:
+                j: int, _k: chex.PRNGKey | None, _r: Any
+            ) -> tuple[chex.PRNGKey | None, Any]:
                 agent_b = jax.tree_util.tree_map(lambda z: z[j], sorted_agents_b)
                 if has_key:
                     _k, fk = jax.random.split(_k, 2)
@@ -385,8 +386,8 @@ def spatial(
                 return _k, r
 
             def inner(
-                j: int, carry: Tuple[Optional[chex.PRNGKey], Any]
-            ) -> Tuple[Optional[chex.PRNGKey], Any]:
+                j: int, carry: tuple[chex.PRNGKey | None, Any]
+            ) -> tuple[chex.PRNGKey | None, Any]:
                 _k, _r = carry
                 _pos_b = sorted_pos_b[j]
                 d = utils.space.shortest_distance(
@@ -417,7 +418,7 @@ def spatial(
             return _results
 
         def agent_reduce(
-            k: Optional[chex.PRNGKey], i: chex.Numeric, co_ords: chex.Array
+            k: chex.PRNGKey | None, i: chex.Numeric, co_ords: chex.Array
         ) -> chex.ArrayTree:
             nbs = utils.space.neighbour_indices(co_ords, offsets, n_bins)
             nb_bins = bins_b[nbs]
@@ -458,9 +459,9 @@ def nearest_neighbour(
     *,
     default: Default,
     topology: str = "moore",
-    n_bins: Optional[int | Sequence[int]] = None,
-    i_range: Optional[float] = None,
-    dims: Union[float, Sequence[float]] = 1.0,
+    n_bins: int | Sequence[int] | None = None,
+    i_range: float | None = None,
+    dims: float | Sequence[float] = 1.0,
 ) -> Callable:
     """
     Apply a function between an agent and its closest neighbour
@@ -671,8 +672,8 @@ def nearest_neighbour(
         agents_b: Any,
         *,
         pos: chex.Array,
-        pos_b: Optional[chex.Array] = None,
-        key: Optional[chex.PRNGKey] = None,
+        pos_b: chex.Array | None = None,
+        key: chex.PRNGKey | None = None,
         **static_kwargs,
     ) -> Any:
         _check_arguments(pos, pos_b, agents_a, agents_b)
@@ -684,9 +685,9 @@ def nearest_neighbour(
             co_ords_a,
             sort_idxs_a,
             bins_a,
-            sorted_idxs_a,
+            _sorted_idxs_a,
             sorted_pos_a,
-            sorted_agents_a,
+            _sorted_agents_a,
         ) = _sort_agents(n_bins, width, pos, agents_a)
 
         if same_types:
@@ -698,10 +699,10 @@ def nearest_neighbour(
                 n_bins, width, pos_b, agents_b
             )
 
-        def cell(i: int, bin_range: chex.Array) -> Tuple[int, float]:
+        def cell(i: int, bin_range: chex.Array) -> tuple[int, float]:
             pos_a = sorted_pos_a[i]
 
-            def inner(j: int, carry: Tuple[int, float]) -> Tuple[int, float]:
+            def inner(j: int, carry: tuple[int, float]) -> tuple[int, float]:
                 _best_idx, _best_d = carry
                 _pos_b = sorted_pos_b[j]
                 _d = utils.space.shortest_distance(
@@ -749,7 +750,7 @@ def nearest_neighbour(
         nearest_idxs = nearest_idxs[inv_sort]
 
         def apply(
-            k: Optional[chex.PRNGKey], a: chex.ArrayTree, idx_b: chex.Numeric
+            k: chex.PRNGKey | None, a: chex.ArrayTree, idx_b: chex.Numeric
         ) -> chex.ArrayTree:
             b = jax.tree.map(lambda x: x.at[idx_b].get(), sorted_agents_b)
             if has_key:
@@ -759,7 +760,7 @@ def nearest_neighbour(
             return result
 
         def check(
-            k: Optional[chex.PRNGKey], a: chex.ArrayTree, idx_b: chex.Numeric
+            k: chex.PRNGKey | None, a: chex.ArrayTree, idx_b: chex.Numeric
         ) -> chex.ArrayTree:
             return jax.lax.cond(
                 idx_b < 0,

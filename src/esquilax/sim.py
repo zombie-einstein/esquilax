@@ -1,8 +1,9 @@
 """
 Abstract class wrapping common simulation functionality
 """
+
 from functools import partial
-from typing import Any, Generic, Optional, Tuple
+from typing import Any, Generic
 
 import chex
 import jax
@@ -59,8 +60,8 @@ class Sim(Generic[TSimParams, TSimState]):
         key: chex.PRNGKey,
         params: TSimParams,
         state: TSimState,
-        **kwargs: Any
-    ) -> Tuple[TSimState, chex.ArrayTree]:
+        **kwargs: Any,
+    ) -> tuple[TSimState, chex.ArrayTree]:
         """
         A single step/update of the environment
 
@@ -109,8 +110,8 @@ class Sim(Generic[TSimParams, TSimState]):
         initial_state: TSimState,
         show_progress: bool = True,
         pbar_id: int = 0,
-        **step_kwargs: Any
-    ) -> Tuple[TSimState, chex.ArrayTree, chex.PRNGKey]:
+        **step_kwargs: Any,
+    ) -> tuple[TSimState, chex.ArrayTree, chex.PRNGKey]:
         """
         Convenience function to run the simulation for a fixed number of steps
 
@@ -162,10 +163,10 @@ class Sim(Generic[TSimParams, TSimState]):
         n_steps: int,
         key: chex.PRNGKey,
         show_progress: bool = True,
-        params: Optional[TSimParams] = None,
+        params: TSimParams | None = None,
         pbar_id: int = 0,
-        **step_kwargs
-    ) -> Tuple[TSimState, chex.ArrayTree]:
+        **step_kwargs,
+    ) -> tuple[TSimState, chex.ArrayTree]:
         """
         Convenience function to initialise and run the simulation
 
@@ -209,7 +210,7 @@ class Sim(Generic[TSimParams, TSimState]):
             initial_state,
             show_progress=show_progress,
             pbar_id=pbar_id,
-            **step_kwargs
+            **step_kwargs,
         )
 
         return final_state, records

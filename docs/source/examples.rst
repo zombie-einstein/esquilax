@@ -12,8 +12,6 @@ Examples
    :includehidden:
 
    examples/hard_coded_boids
-   examples/evo_boids
-   examples/rl_boids
 
 The full code for these examples can be found on
 `github <https://github.com/zombie-einstein/esquilax/tree/main/examples>`_.

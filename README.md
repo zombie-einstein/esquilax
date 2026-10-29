@@ -44,12 +44,6 @@ like [Flax](https://github.com/google/flax) and
   can be readily parallelised, but also aiding composition
   and readability
 
-- ***Built-in RL and Evolutionary Training***
-
-  Esquilax provides functionality for running multi-agent RL
-  and multi-strategy neuro-evolution training, within Esquilax
-  simulations.
-
 ## Should I Use Esquilax?
 
 Esquilax is intended for time-stepped models of large scale systems
@@ -71,27 +65,19 @@ Esquilax can be installed from pip using
 pip install esquilax
 ```
 
-The requirements for evolutionary and rl training are
-not installed by default. They can be installed using the `evo` and `rl`
-extras respectively, e.g.:
-
-```bash
-pip install esquilax[evo]
-```
-
 You may need to manually install JAXlib, especially for GPU support.
 Installation instructions for JAX can be found
 [here](https://github.com/google/jax?tab=readme-ov-file#installation).
 
 ## Examples
 
-Example models and multi-agent policy training implemented using Esquilax
-can be found [here](https://github.com/zombie-einstein/esquilax/tree/main/examples). A virtual environment with additional
-dependencies for the examples can be setup using [poetry](https://python-poetry.org/)
-with
+Example models implemented using Esquilax
+can be found [here](https://github.com/zombie-einstein/esquilax/tree/main/examples).
+
+Examples can be run using [uv](https://docs.astral.sh/uv/)
 
 ```bash
-poetry install --extras all --with examples
+uv run --extras examples ./examples/...
 ```
 
 For a project using Esquilax see

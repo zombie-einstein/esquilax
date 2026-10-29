@@ -1,7 +1,9 @@
 """
 Generic types
 """
-from typing import Collection, TypeVar
+
+from collections.abc import Collection
+from typing import TypeVar
 
 import chex
 

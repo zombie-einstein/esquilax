@@ -1,6 +1,5 @@
 # import examples
-from examples import forest_fire, game_of_life, opinion_dynamics
-from examples.boids import hard_coded
+from examples import boids, forest_fire, game_of_life, opinion_dynamics
 
 
 def test_opinion_dynamics_example():
@@ -18,7 +17,7 @@ def test_hard_coded_boids_example():
     n_steps = 100
     n_agents = 50
 
-    results = hard_coded.boids_sim(n_agents, n_steps, show_progress=False)
+    results = boids.boids_sim(n_agents, n_steps, show_progress=False)
 
     assert results.shape == (n_steps, n_agents, 2)
 

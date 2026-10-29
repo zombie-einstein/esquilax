@@ -8,7 +8,6 @@ Note that this implementation is not the most efficient
 means of doing it, rather it's a demonstration of the
 use of the grid transformations process.
 """
-from typing import Tuple
 
 import chex
 import jax.numpy as jnp
@@ -23,8 +22,8 @@ def step(
     _params: None,
     state: chex.Array,
     *,
-    dimensions: Tuple[int, int],
-) -> Tuple[chex.Array, chex.Array]:
+    dimensions: tuple[int, int],
+) -> tuple[chex.Array, chex.Array]:
     # Co-ordinates of individual cells on a grid
     cell_co_ords = (
         jnp.stack(jnp.meshgrid(jnp.arange(dimensions[0]), jnp.arange(dimensions[1])))
@@ -50,14 +49,14 @@ def step(
     return new_state, state
 
 
-def init_state(key: chex.PRNGKey, dimensions: Tuple[int, int]) -> chex.Array:
+def init_state(key: chex.PRNGKey, dimensions: tuple[int, int]) -> chex.Array:
     return jax.random.choice(key, 2, dimensions).reshape(-1)
 
 
 def run_model(
     seed: int = 101,
     n_steps: int = 200,
-    dimensions: Tuple[int, int] = (100, 100),
+    dimensions: tuple[int, int] = (100, 100),
     show_progress: bool = True,
 ) -> chex.Array:
     k = jax.random.PRNGKey(seed)

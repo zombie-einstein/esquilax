@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 import jax
 import jax.numpy as jnp
 import pytest
@@ -75,7 +73,7 @@ def test_index_bins():
         ((3, 3), 0.3, [0, 2, 6, 8]),
     ],
 )
-def test_grid_bins(n_cells: Tuple[int, int], width: float, expected: List[int]):
+def test_grid_bins(n_cells: tuple[int, int], width: float, expected: list[int]):
     x = jnp.array([[0.2, 0.2], [0.2, 0.7], [0.7, 0.2], [0.7, 0.7]])
     _, b = utils.space.get_bins(x, n_cells, width)
     assert jnp.array_equal(b, jnp.array(expected))
@@ -105,7 +103,7 @@ def test_grid_bins(n_cells: Tuple[int, int], width: float, expected: List[int]):
         ),
     ],
 )
-def test_topology(topology: str, expected: List[List[int]]):
+def test_topology(topology: str, expected: list[list[int]]):
     idxs = jnp.array([[0, 0], [0, 1], [1, 0], [1, 1]])
     offsets = utils.space.get_neighbours_offsets(topology)
     x = jax.vmap(lambda a: utils.space.neighbour_indices(a, offsets, (2, 2)))(idxs)
@@ -124,7 +122,7 @@ def test_topology(topology: str, expected: List[List[int]]):
     ],
 )
 def test_non_square_topology(
-    n_bins: Tuple[int, int], idx: List[int], expected: List[int]
+    n_bins: tuple[int, int], idx: list[int], expected: list[int]
 ):
     idx = jnp.array(idx)
     offsets = utils.space.get_neighbours_offsets("moore")
