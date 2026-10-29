@@ -1,6 +1,6 @@
 [project]
 name = "esquilax"
-version = "2.1.0"
+version = "3.0.0"
 description = "JAX multi-agent simulation and ML toolset"
 readme = "README.md"
 authors = [
