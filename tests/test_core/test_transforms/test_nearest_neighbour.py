@@ -1,5 +1,3 @@
-from typing import List, Tuple, Union
-
 import chex
 import jax.numpy as jnp
 import jax.random
@@ -44,10 +42,10 @@ def test_nearest_neighbour(expected: chex.Array, topology: str, i_range: float):
     ],
 )
 def test_nearest_neighbour_non_unit_region(
-    x: List[List[float]],
+    x: list[list[float]],
     i_range: float,
-    dims: Union[float, Tuple[float, float]],
-    expected: List[int],
+    dims: float | tuple[float, float],
+    expected: list[int],
 ):
     x = jnp.array(x)
 

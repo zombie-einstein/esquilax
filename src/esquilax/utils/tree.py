@@ -1,7 +1,8 @@
 """
 PyTree utilities
 """
-from typing import Any, Optional, Tuple, Type
+
+from typing import Any
 
 import chex
 import jax
@@ -10,7 +11,7 @@ from esquilax.typing import TypedPyTree
 
 
 def key_tree_split(
-    key: chex.PRNGKey, tree: TypedPyTree[Any], typ: Optional[Type] = None
+    key: chex.PRNGKey, tree: TypedPyTree[Any], typ: type | None = None
 ) -> TypedPyTree[chex.PRNGKey]:
     """
     Generate random keys for PyTree leaves
@@ -50,8 +51,8 @@ def key_tree_split(
 
 
 def transpose_tree_of_tuples(
-    tree_a: TypedPyTree[Any], tree_b, n: int, typ: Optional[Type] = None
-) -> Tuple:
+    tree_a: TypedPyTree[Any], tree_b, n: int, typ: type | None = None
+) -> tuple:
     """
     Transpose a tree containing tuples, into a tuple of the outer tree
 
@@ -79,7 +80,7 @@ def transpose_tree_of_tuples(
 
     return tuple(
         jax.tree.map(
-            lambda _, x: x[i],
+            lambda _, x, i=i: x[i],
             tree_a,
             tree_b,
             is_leaf=is_leaf,

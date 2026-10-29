@@ -1,16 +1,16 @@
 """
 Functions used in spatial transforms
 """
+
 from itertools import product
-from typing import Tuple, Union
 
 import chex
 import jax.numpy as jnp
 
 
 def get_bins(
-    x: chex.Array, n_cells: Tuple[int, int], width: float
-) -> Tuple[chex.Array, chex.Array]:
+    x: chex.Array, n_cells: tuple[int, int], width: float
+) -> tuple[chex.Array, chex.Array]:
     """
     Assign co-ordinates to a grid-cell
 
@@ -40,7 +40,7 @@ def get_bins(
 
 
 def neighbour_indices(
-    x: chex.Array, offsets: chex.Array, n_bins: Tuple[int, int]
+    x: chex.Array, offsets: chex.Array, n_bins: tuple[int, int]
 ) -> chex.Array:
     """
     Apply offsets to co-ordinates to get neighbouring bin indices
@@ -96,10 +96,8 @@ def get_neighbours_offsets(topology: str) -> chex.Array:
         offsets = jnp.array(offsets)
     else:
         raise ValueError(
-            (
-                "Topology should be one of 'same-cell', "
-                f"'von-neumann' or 'moore' got {topology}"
-            )
+            "Topology should be one of 'same-cell', "
+            f"'von-neumann' or 'moore' got {topology}"
         )
 
     return offsets
@@ -129,11 +127,11 @@ def shortest_vector(a: chex.Array, b: chex.Array, length: float = 1.0) -> chex.A
 
 
 def shortest_distance(
-    a: Union[float, chex.Array],
-    b: Union[float, chex.Array],
-    length: Union[float, chex.Array] = 1.0,
+    a: float | chex.Array,
+    b: float | chex.Array,
+    length: float | chex.Array = 1.0,
     norm: bool = True,
-) -> Union[float, chex.Array]:
+) -> float | chex.Array:
     """
     Get the shortest distance between points on a torus
 

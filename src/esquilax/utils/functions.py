@@ -1,8 +1,9 @@
 """
 Function and data utilities
 """
+
 import inspect
-from typing import Callable, List, Optional, Tuple
+from collections.abc import Callable
 
 import chex
 import jax
@@ -45,11 +46,11 @@ def get_size(tree: chex.ArrayTree) -> int:
     """
     lens = jax.tree_util.tree_map(lambda x: x.shape[0], tree)
     lens = jax.tree_util.tree_flatten(lens)[0]
-    assert all([lens[0] == n for n in lens[1:]])
+    assert all(lens[0] == n for n in lens[1:])
     return lens[0]
 
 
-def get_keyword_args(f: Callable) -> List[str]:
+def get_keyword_args(f: Callable) -> list[str]:
     """
     Get keyword-only argument names from a function signature
 
@@ -84,7 +85,7 @@ def get_keyword_args(f: Callable) -> List[str]:
     return key_word_args
 
 
-def has_key_keyword(keyword_args: List[str]) -> Tuple[bool, List[str]]:
+def has_key_keyword(keyword_args: list[str]) -> tuple[bool, list[str]]:
     """
     Check if list of arguments contains the "key" keyword
 
@@ -103,7 +104,7 @@ def has_key_keyword(keyword_args: List[str]) -> Tuple[bool, List[str]]:
     return has_key, keys
 
 
-def check_key(has_key: bool, key: Optional[chex.PRNGKey]) -> None:
+def check_key(has_key: bool, key: chex.PRNGKey | None) -> None:
     """
     Assert if a key instance has/not been provided if expected
 

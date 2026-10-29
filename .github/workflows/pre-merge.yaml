@@ -6,60 +6,54 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
         with:
-          python-version: '3.10'
-      - uses: snok/install-poetry@v1
+          python-version: '3.12'
+      - name: Install uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          version: 1.5.1
-          virtualenvs-create: false
-          installer-parallel: true
-      - run: poetry install
-      - run: pre-commit install
-      - run: task lint
+          version: "0.13.4"
+      - run: uv run task lint
   run-tests:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: snok/install-poetry@v1
+      - name: Install uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          version: 1.5.1
-          virtualenvs-create: false
-          installer-parallel: true
-      - run: poetry install --extras all
-      - run: pytest -vv
+          version: "0.13.4"
+          python-version: ${{ matrix.python-version }}
+      - run: uv run pytest -vv
   build-and-test-docs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
         with:
-          python-version: '3.10'
-      - uses: snok/install-poetry@v1
+          python-version: '3.12'
+      - name: Install uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          version: 1.5.1
-          virtualenvs-create: false
-          installer-parallel: true
-      - run: poetry install --extras all
-      - run: task docs
-      - run: task doc-tests
+          version: "0.13.4"
+      - run: uv run task docs
+      - run: uv run task doc-tests
   test-no-extras:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
         with:
-          python-version: '3.10'
+          python-version: '3.12'
       - name: Install package
         run: pip install . pytest
       - name: Run core tests

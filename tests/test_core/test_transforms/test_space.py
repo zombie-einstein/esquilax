@@ -1,5 +1,3 @@
-from typing import List, Tuple, Union
-
 import chex
 import jax
 import jax.numpy as jnp
@@ -418,10 +416,10 @@ def test_space_fuzzy_diff_types(n_agents: int, i_range: float):
     ],
 )
 def test_spatial_non_unit_region(
-    x: List[List[float]],
+    x: list[list[float]],
     i_range: float,
-    dims: Union[float, Tuple[float, float]],
-    expected: List[int],
+    dims: float | tuple[float, float],
+    expected: list[int],
 ):
     x = jnp.array(x)
 
@@ -462,11 +460,11 @@ def test_spatial_non_unit_region(
 )
 def test_parameter_processing(
     i_range: float,
-    dims: float | List[float],
-    n_bins: int | List[int],
-    expected_n_bins: Tuple[int, int],
+    dims: float | list[float],
+    n_bins: int | list[int],
+    expected_n_bins: tuple[int, int],
     expected_width: float,
-    expected_dims: List[float],
+    expected_dims: list[float],
 ):
     n_bins, width, dims = transforms._space._process_parameters(i_range, dims, n_bins)
 

@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from functools import partial
 from math import prod
-from typing import Any, Callable, Optional, Tuple
+from typing import Any
 
 import chex
 import jax
@@ -11,8 +12,8 @@ from esquilax.reductions import Reduction
 
 
 def _sort_agents(
-    dims: Tuple[int, int], co_ords: chex.Array, agents: chex.Array
-) -> Tuple[chex.Array, chex.Array, chex.Array, chex.Array, chex.ArrayTree]:
+    dims: tuple[int, int], co_ords: chex.Array, agents: chex.Array
+) -> tuple[chex.Array, chex.Array, chex.Array, chex.Array, chex.ArrayTree]:
     idxs = co_ords[:, 0] * dims[1] + co_ords[:, 1]
     sort_idxs = jnp.argsort(idxs)
     _, bins = utils.graph.index_bins(idxs, prod(dims))
@@ -25,13 +26,13 @@ def _sort_agents(
 
 def _check_arguments(
     idxs: chex.Array,
-    idxs_b: Optional[chex.Array],
-    agents_a: Optional[chex.ArrayTree],
-    agents_b: Optional[chex.ArrayTree],
+    idxs_b: chex.Array | None,
+    agents_a: chex.ArrayTree | None,
+    agents_b: chex.ArrayTree | None,
 ) -> None:
-    assert (
-        idxs.ndim == 2 and idxs.shape[1] == 2
-    ), f"idxs argument should be an array of 2d indices, got shape {idxs.shape}"
+    assert idxs.ndim == 2 and idxs.shape[1] == 2, (
+        f"idxs argument should be an array of 2d indices, got shape {idxs.shape}"
+    )
 
     if idxs_b is not None:
         assert idxs_b.ndim == 2 and idxs_b.shape[1] == 2, (
@@ -55,7 +56,7 @@ def grid(
     f: Callable,
     *,
     reduction: Reduction,
-    dims: Tuple[int, int],
+    dims: tuple[int, int],
     include_self: bool = False,
     topology: str = "moore",
 ) -> Callable:
@@ -241,8 +242,8 @@ def grid(
         agents_b: Any,
         *,
         co_ords: chex.Array,
-        co_ords_b: Optional[chex.Array] = None,
-        key: Optional[chex.PRNGKey] = None,
+        co_ords_b: chex.Array | None = None,
+        key: chex.PRNGKey | None = None,
         **static_kwargs,
     ) -> Any:
         utils.functions.check_key(has_key, key)
@@ -253,7 +254,7 @@ def grid(
             co_ords_a,
             sort_idxs_a,
             bins_a,
-            sorted_idxs_a,
+            _sorted_idxs_a,
             sorted_agents_a,
         ) = _sort_agents(dims, co_ords, agents_a)
 
@@ -263,12 +264,12 @@ def grid(
         else:
             _, _, bins_b, _, sorted_agents_b = _sort_agents(dims, co_ords_b, agents_b)
 
-        def cell(k: Optional[chex.PRNGKey], i: int, bin_range: chex.Array) -> Any:
+        def cell(k: chex.PRNGKey | None, i: int, bin_range: chex.Array) -> Any:
             agent_a = jax.tree_util.tree_map(lambda y: y[i], sorted_agents_a)
 
             def interact(
-                j: int, carry: Tuple[Optional[chex.PRNGKey], Any]
-            ) -> Tuple[Optional[chex.PRNGKey], Any]:
+                j: int, carry: tuple[chex.PRNGKey | None, Any]
+            ) -> tuple[chex.PRNGKey | None, Any]:
                 _k, _r = carry
                 agent_b = jax.tree_util.tree_map(lambda z: z[j], sorted_agents_b)
 
@@ -303,9 +304,7 @@ def grid(
 
             return _results
 
-        def agent_reduce(
-            k: Optional[chex.PRNGKey], i: chex.Numeric, _co_ords: chex.Array
-        ):
+        def agent_reduce(k: chex.PRNGKey | None, i: chex.Numeric, _co_ords: chex.Array):
             nbs = utils.space.neighbour_indices(_co_ords, offsets, dims)
             nb_bins = bins_b[nbs]
 
@@ -481,7 +480,7 @@ def grid_local(
         params: Any,
         agents: chex.ArrayTree,
         grids: chex.ArrayTree,
-        key: Optional[chex.PRNGKey] = None,
+        key: chex.PRNGKey | None = None,
         *,
         co_ords: chex.Array,
         **static_kwargs,
@@ -493,7 +492,7 @@ def grid_local(
         dims = jnp.array(dims)
         _check_arguments(co_ords, None, agents, None)
 
-        def inner(k: Optional[chex.PRNGKey], _co_ords: chex.Array, agent):
+        def inner(k: chex.PRNGKey | None, _co_ords: chex.Array, agent):
             nbs = (_co_ords[jnp.newaxis] + offsets) % dims
             grid_vals = jax.tree.map(lambda x: x[nbs[:, 0], nbs[:, 1]], grids)
             if has_key:

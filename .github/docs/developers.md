@@ -1,19 +1,6 @@
 # Developer Notes
 
-Dependencies can be installed with [poetry](https://python-poetry.org/) by running
-
-```bash
-poetry install --extras all
-```
-
-This will initialise a virtual environment,``.venv`` in
-the project root (this behaviour can be modified in
-the [`poetry.toml`](/poetry.toml) file). This environment
-can then be activated with
-
-```bash
-source .venv/bin/activate
-```
+Esquilax uses [uv](https://docs.astral.sh/uv/) for dependency management.
 
 ## Development Tasks
 
@@ -22,7 +9,7 @@ Common development tasks can be run using
 list of available tasks can be seen using.
 
 ```bash
-task --list
+uv run task --list
 ```
 
 ### Linting
@@ -31,13 +18,13 @@ task --list
 installed by running
 
 ```bash
-pre-commit install
+uv run pre-commit install
 ```
 
 Linting checks can then be run using
 
 ```bash
-task lint
+uv run task lint
 ```
 
 ### Tests
@@ -45,7 +32,7 @@ task lint
 Tests can be run with
 
 ```bash
-task test
+uv run task test
 ```
 
 ### Build & Test Documentation
@@ -55,7 +42,7 @@ Docs can be built using
 by running
 
 ```bash
-task docs
+uv run task docs
 ```
 
 Built docs will be generated in the `docs/build` folder.
@@ -63,7 +50,7 @@ Built docs will be generated in the `docs/build` folder.
 Likewise, documentation tests can be run with
 
 ```bash
-task doc-tests
+uv run task doc-tests
 ```
 
 ## Documentation
