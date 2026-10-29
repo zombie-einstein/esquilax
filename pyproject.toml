@@ -61,4 +61,4 @@ test = { cmd = "pytest tests", help="Run tests"}
 lint = { cmd = "pre-commit run --all-files", help="Code format checks"}
 docs = { cmd = "sphinx-build -W -b html docs/source docs/build", help="Build docs"}
 doc-tests = { cmd = "sphinx-build -W -b doctest docs/source docs/build", help="Run sphinx doc-tests"}
-pre-commit = "task test && task lint && task docs && task doc-tests"
+pre-commit = { cmd = "task test && task lint && task docs && task doc-tests", help="Run all pre-merge checks"}
