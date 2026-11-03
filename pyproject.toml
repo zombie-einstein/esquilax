@@ -36,6 +36,12 @@ dependencies = [
     "jax-tqdm>=0.4.0",
 ]
 
+[project.urls]
+repository = "https://github.com/zombie-einstein/esquilax"
+homepage = "https://zombie-einstein.github.io/esquilax"
+documentation = "https://zombie-einstein.github.io/esquilax"
+issues = "https://github.com/zombie-einstein/esquilax/issues"
+
 [project.optional-dependencies]
 examples = [
     "matplotlib>=3.11.2",
